@@ -1,0 +1,108 @@
+/* ./App.css */
+
+/* root */
+.appRoot {
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+  background: #f0f0f0;
+}
+
+/* columns */
+.appCol {
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.appColTickers {
+  width: 720px;
+  flex: 0 0 720px;
+  border-right: 1px solid #ddd;
+  min-width: 720px;
+}
+
+.appColOrderbook {
+  width: 600px;
+  flex: 0 0 600px;
+  border-right: 1px solid #ddd;
+  min-width: 600px;
+}
+
+.appColTrades {
+  width: 520px;
+  flex: 0 0 520px;
+  border-right: 1px solid #ddd;
+  min-width: 520px;
+}
+
+.appColGraph {
+  flex: 1 1 auto;
+  min-width: 0; /* важно: чтобы граф занимал остаток и не раздувал ширину */
+  overflow: hidden;
+}
+
+/* tickers header */
+.appHeader {
+  padding: 10px 10px 0;
+  flex: 0 0 auto;
+}
+.appTitle {
+  font-weight: 700;
+}
+.appSub {
+  font-size: 12px;
+  color: #666;
+}
+
+/* bodies */
+.appBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* orderbook section */
+.appObWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.appObBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.appFooter {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #666;
+  padding: 4px 8px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+/* trades section */
+.appTradesWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.appTradesHalf {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: hidden;
+  border-bottom: 1px solid #eee;
+}
+.appTradesHalf:last-child {
+  border-bottom: none;
+}
