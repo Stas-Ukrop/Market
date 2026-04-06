@@ -25,7 +25,8 @@
     "test:ci": "react-scripts test --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "startall":"react-scripts build && prettier --write \"src/**/*.{js,jsx,css,json}\" && husky"
   },
   "eslintConfig": {
     "extends": [
