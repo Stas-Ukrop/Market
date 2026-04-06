@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "html2canvas": "^1.4.1",
     "lightweight-charts": "^5.1.0",
+    "modern-normalize": "^3.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
@@ -20,7 +21,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
     "prepare": "husky"
@@ -29,7 +30,7 @@
     "extends": [
       "react-app",
       "react-app/jest",
-      "plugin:prettier/recommended"
+      "prettier"
     ]
   },
   "browserslist": {
@@ -46,7 +47,6 @@
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1"

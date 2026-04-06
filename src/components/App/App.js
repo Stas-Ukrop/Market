@@ -1,16 +1,17 @@
 // src/App.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AppBar from "../AppBar/AppBar.js";
 import "./App.css";
 
-import { appCore, parseRouteId, pickRoute, pickTradeChunk, pickKlineChunk } from "./main.js";
-import { takeFullSnapshot } from "./components/snapshot/SnapshotEngine.js";
+import { appCore, parseRouteId, pickRoute, pickTradeChunk, pickKlineChunk } from "../../main.js";
+import { takeFullSnapshot } from "../snapshot/SnapshotEngine.js";
 
 // TradingCalculator удален отсюда, он теперь внутри Graph
 
-import Tickers from "./components/Tickers/Tickers.js";
-import PublicTrades from "./components/Trades/PublicTrades.js";
-import BybitTradesGraph from "./components/Klines/BybitTradesGraph.js";
-import BybitOrderbooks from "./components/OrderBook/BybitOrderbooks.js";
+import Tickers from "../Tickers/Tickers.js";
+import PublicTrades from "../Trades/PublicTrades.js";
+import BybitTradesGraph from "../Klines/BybitTradesGraph.js";
+import BybitOrderbooks from "../OrderBook/BybitOrderbooks.js";
 
 export default function App() {
   const [tick, setTick] = useState(0);
@@ -126,99 +127,89 @@ export default function App() {
   const snap = appCore.kernel?.getSnapshot?.() || null;
 
   return (
-    <div className="appRoot">
-      <div className="appCol appColTickers">
-        <div className="appHeader">
-          <div className="appTitle" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            Bybit Lite Client
-            <div style={{ display: "flex", gap: "4px" }}>
-              <button className="app-btn-icon" onClick={() => takeFullSnapshot(appCore.activeCoin || "BybitMarket")}>
-                📸
-              </button>
+    <>
+      <AppBar />
+
+      <div className="container">
+        <div className="appCol appColTickers">
+          <div className="appBody">
+            <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
+          </div>
+        </div>
+
+        <div className="appCol appColOrderbook">
+          <div className="appObWrap">
+            <div className="appObBody">
+              <BybitOrderbooks
+                coin={selectedBaseId}
+                spotView={spotData.view}
+                linearView={linearData.view}
+                rows={appCore.obCtrl.getRows()}
+                onRowsChange={(n) => {
+                  appCore.obCtrl.setRows(n);
+                  appCore.bump();
+                }}
+                onToggleAnalysis={() => {
+                  appCore.obCtrl.toggleAnalysis();
+                  appCore.bump();
+                }}
+                isAnalyzing={appCore.obCtrl.isAnalyzing()}
+              />
+            </div>
+            <div className="appFooter">shards: {snap?.shards?.length ?? 0}</div>
+          </div>
+        </div>
+
+        <div className="appCol appColTrades">
+          <div className="appTradesWrap">
+            <div className="appTradesHalf">
+              <PublicTrades controller={appCore.spotTradesCtrl} title={`Spot Trades (${spotSymbol})`} tradeChunk={spotTradeChunk} symbol={spotSymbol} interval={spotGrafInterval} onUpdateMarkers={setSpotRangeMarkers} />
+            </div>
+            <div className="appTradesHalf">
+              <PublicTrades controller={appCore.linearTradesCtrl} title={`Linear Trades (${linSymbol})`} tradeChunk={linearTradeChunk} symbol={linSymbol} interval={linearGrafInterval} onUpdateMarkers={setLinearRangeMarkers} />
             </div>
           </div>
-          <div className="appSub">
-            {appCore.error ? `ERR: ${appCore.error}` : appCore.ready ? "ready" : "loading..."}
-            {snap?.inflight !== undefined ? ` | inflight=${snap.inflight}` : ""}
-          </div>
         </div>
-        <div className="appBody">
-          <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
-        </div>
-      </div>
 
-      <div className="appCol appColOrderbook">
-        <div className="appObWrap">
-          <div className="appObBody">
-            <BybitOrderbooks
+        <div className="appCol appColGraph">
+          <div className="appBody">
+            <BybitTradesGraph
               coin={selectedBaseId}
-              spotView={spotData.view}
-              linearView={linearData.view}
-              rows={appCore.obCtrl.getRows()}
-              onRowsChange={(n) => {
-                appCore.obCtrl.setRows(n);
-                appCore.bump();
-              }}
-              onToggleAnalysis={() => {
-                appCore.obCtrl.toggleAnalysis();
-                appCore.bump();
-              }}
-              isAnalyzing={appCore.obCtrl.isAnalyzing()}
+              spotSymbol={spotSymbol}
+              linearSymbol={linSymbol}
+              spotChunk={spotKlineChunk}
+              linearChunk={linearKlineChunk}
+              spotTradeChunk={spotTradeChunk}
+              linearTradeChunk={linearTradeChunk}
+              // Graph Controls
+              spotInterval={spotGrafInterval}
+              setSpotInterval={setSpotGrafInterval}
+              spotLimit={spotGrafLimit}
+              setSpotLimit={setSpotGrafLimit}
+              linearInterval={linearGrafInterval}
+              setLinearInterval={setLinearGrafInterval}
+              linearLimit={linearGrafLimit}
+              setLinearLimit={setLinearGrafLimit}
+              // Legacy fallbacks
+              grafIntervalUI={grafIntervalUI}
+              setGrafIntervalUI={setLinearGrafInterval}
+              grafBarsLimit={linearGrafLimit}
+              setGrafBarsLimit={setLinearGrafLimit}
+              // Overlays
+              spotLines={spotData.lines}
+              linearLines={linearData.lines}
+              spotMarkers={spotMarkers}
+              linearMarkers={linearMarkers}
+              spotRangeMarkers={spotRangeMarkers}
+              linearRangeMarkers={linearRangeMarkers}
+              // === NEW: Calculator Data passed to Graph ===
+              spotPrice={spotPriceVal}
+              linearPrice={linearPriceVal}
+              funding={currentFundingForCalc}
             />
           </div>
-          <div className="appFooter">shards: {snap?.shards?.length ?? 0}</div>
         </div>
       </div>
-
-      <div className="appCol appColTrades">
-        <div className="appTradesWrap">
-          <div className="appTradesHalf">
-            <PublicTrades controller={appCore.spotTradesCtrl} title={`Spot Trades (${spotSymbol})`} tradeChunk={spotTradeChunk} symbol={spotSymbol} interval={spotGrafInterval} onUpdateMarkers={setSpotRangeMarkers} />
-          </div>
-          <div className="appTradesHalf">
-            <PublicTrades controller={appCore.linearTradesCtrl} title={`Linear Trades (${linSymbol})`} tradeChunk={linearTradeChunk} symbol={linSymbol} interval={linearGrafInterval} onUpdateMarkers={setLinearRangeMarkers} />
-          </div>
-        </div>
-      </div>
-
-      <div className="appCol appColGraph">
-        <div className="appBody">
-          <BybitTradesGraph
-            coin={selectedBaseId}
-            spotSymbol={spotSymbol}
-            linearSymbol={linSymbol}
-            spotChunk={spotKlineChunk}
-            linearChunk={linearKlineChunk}
-            spotTradeChunk={spotTradeChunk}
-            linearTradeChunk={linearTradeChunk}
-            // Graph Controls
-            spotInterval={spotGrafInterval}
-            setSpotInterval={setSpotGrafInterval}
-            spotLimit={spotGrafLimit}
-            setSpotLimit={setSpotGrafLimit}
-            linearInterval={linearGrafInterval}
-            setLinearInterval={setLinearGrafInterval}
-            linearLimit={linearGrafLimit}
-            setLinearLimit={setLinearGrafLimit}
-            // Legacy fallbacks
-            grafIntervalUI={grafIntervalUI}
-            setGrafIntervalUI={setLinearGrafInterval}
-            grafBarsLimit={linearGrafLimit}
-            setGrafBarsLimit={setLinearGrafLimit}
-            // Overlays
-            spotLines={spotData.lines}
-            linearLines={linearData.lines}
-            spotMarkers={spotMarkers}
-            linearMarkers={linearMarkers}
-            spotRangeMarkers={spotRangeMarkers}
-            linearRangeMarkers={linearRangeMarkers}
-            // === NEW: Calculator Data passed to Graph ===
-            spotPrice={spotPriceVal}
-            linearPrice={linearPriceVal}
-            funding={currentFundingForCalc}
-          />
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

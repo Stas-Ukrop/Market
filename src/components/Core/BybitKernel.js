@@ -1,4 +1,4 @@
-// ./components/Core/BybitKernel.js
+// /components/Core/BybitKernel.js
 const BYBIT_CHUNK_SIZE = 10;
 
 // ─────────────────────────────────────────────
@@ -19,7 +19,9 @@ const logFilteredSymbol = (raw, reason, extra = null) => {
   try {
     if (filteredSymbolsLog.length >= FILTER_LOG_LIMIT) filteredSymbolsLog.shift();
     filteredSymbolsLog.push({ raw, reason, extra, ts: null });
-  } catch { }
+  } catch {
+    console.log("123");
+  }
 };
 
 export function normalizeBaseName(symbol = "") {
@@ -35,7 +37,7 @@ export function normalizeBaseName(symbol = "") {
     return "";
   }
 
-  let s = raw.replace(/[\/:._-]/g, "");
+  let s = raw.replace(/[/:._-]/g, "");
 
   let removedQuote = null;
   for (const quote of QUOTE_ASSETS) {

@@ -2,208 +2,208 @@
    LOCAL HELPERS
 ================================================================================== */
 const upper = (v) =>
-    String(v ?? "")
-        .trim()
-        .toUpperCase();
+  String(v ?? "")
+    .trim()
+    .toUpperCase();
 const lower = (v) =>
-    String(v ?? "")
-        .trim()
-        .toLowerCase();
+  String(v ?? "")
+    .trim()
+    .toLowerCase();
 
 const parseRouteId = (id) => {
-    const p = String(id ?? "")
-        .trim()
-        .split(":");
-    if (p.length < 4) return { exchange: "", marketType: "", symbol: "", quote: "" };
-    return { exchange: lower(p[0]), marketType: lower(p[1]), symbol: upper(p[2]), quote: upper(p[3]) };
+  const p = String(id ?? "")
+    .trim()
+    .split(":");
+  if (p.length < 4) return { exchange: "", marketType: "", symbol: "", quote: "" };
+  return { exchange: lower(p[0]), marketType: lower(p[1]), symbol: upper(p[2]), quote: upper(p[3]) };
 };
 
 const formatPrice = (v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n) || n === 0) return "—";
-    const abs = Math.abs(n);
-    if (abs < 0.000001) return n.toFixed(10);
-    if (abs < 0.001) return n.toFixed(8);
-    if (abs < 1) return n.toFixed(6);
-    if (abs < 10) return n.toFixed(4);
-    return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return "—";
+  const abs = Math.abs(n);
+  if (abs < 0.000001) return n.toFixed(10);
+  if (abs < 0.001) return n.toFixed(8);
+  if (abs < 1) return n.toFixed(6);
+  if (abs < 10) return n.toFixed(4);
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatPct = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "—";
 };
 
 const getPctColor = (v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return "#666";
-    if (n > 0) return "#0a8f3c";
-    if (n < 0) return "#c62828";
-    return "#666";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "#666";
+  if (n > 0) return "#0a8f3c";
+  if (n < 0) return "#c62828";
+  return "#666";
 };
 
 const getFundingClass = (v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return "";
-    return n > 0 ? "sym-funding-pos" : n < 0 ? "sym-funding-neg" : "";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "";
+  return n > 0 ? "sym-funding-pos" : n < 0 ? "sym-funding-neg" : "";
 };
 
 const formatOI = (v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n) || n === 0) return "—";
-    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return "—";
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 };
 
 /* ==================================================================================
    CONSTANTS
 ================================================================================== */
 export const PRICE_RANGES = {
-    "от min до max": [0, Infinity],
-    "от min до 0,001": [0, 0.001],
-    "от 0,001 до 0,01": [0.001, 0.01],
-    "от 0,1 до 1": [0.1, 1],
-    "от 1 до 10": [1, 10],
-    "от 10 до max": [10, Infinity],
+  "от min до max": [0, Infinity],
+  "от min до 0,001": [0, 0.001],
+  "от 0,001 до 0,01": [0.001, 0.01],
+  "от 0,1 до 1": [0.1, 1],
+  "от 1 до 10": [1, 10],
+  "от 10 до max": [10, Infinity],
 };
 export class BybitKernelController {
-    constructor() {
-        this.tickers = [];
-        this.orderBooks = [];
-        this.trades = [];
-        this.klines = [];
+  constructor() {
+    this.tickers = [];
+    this.orderBooks = [];
+    this.trades = [];
+    this.klines = [];
+  }
+  _applySort(list, { key, dir }) {
+    const mult = dir === "asc" ? 1 : -1;
+
+    list.sort((a, b) => {
+      // if (a.quote !== b.quote) return (a.quote === "USDT" ? 0 : 1) - (b.quote === "USDT" ? 0 : 1);
+
+      let va = 0,
+        vb = 0;
+      switch (key) {
+        case "baseId":
+          return a.baseId.localeCompare(b.baseId) * mult;
+        case "spotPrice":
+          va = a.spot.rawPrice;
+          vb = b.spot.rawPrice;
+          break;
+        case "spotPcnt":
+          va = a.spot.rawPcnt;
+          vb = b.spot.rawPcnt;
+          break;
+        case "linPrice":
+          va = a.linear.rawPrice;
+          vb = b.linear.rawPrice;
+          break;
+        case "linPcnt":
+          va = a.linear.rawPcnt;
+          vb = b.linear.rawPcnt;
+          break;
+        case "linOI":
+          va = a.linear.rawOI;
+          vb = b.linear.rawOI;
+          break;
+        default:
+          return 0;
+      }
+
+      if (!va && !vb) return 0;
+      if (!va) return 1;
+      if (!vb) return -1;
+      return (va - vb) * mult;
+    });
+  }
+  _groupRoutes(item) {
+    const routes = item?.routesById ? Object.values(item.routesById) : [];
+    const byQuote = new Map();
+
+    for (const r of routes) {
+      const meta = parseRouteId(r?.id);
+      if (meta.exchange !== "bybit") continue;
+      if (meta.marketType !== "spot" && meta.marketType !== "linear") continue;
+
+      const key = meta.quote || "USD";
+      const group = byQuote.get(key) || {
+        baseId: String(item?.baseId || ""),
+        quote: key,
+        spotRoute: null,
+        linearRoute: null,
+      };
+      if (meta.marketType === "spot") group.spotRoute = r;
+      else group.linearRoute = r;
+      byQuote.set(key, group);
     }
-    _applySort(list, { key, dir }) {
-        const mult = dir === "asc" ? 1 : -1;
 
-        list.sort((a, b) => {
-            // if (a.quote !== b.quote) return (a.quote === "USDT" ? 0 : 1) - (b.quote === "USDT" ? 0 : 1);
+    return Array.from(byQuote.values());
+  }
+  _resolveTicker(route) {
+    if (!route?.id) return null;
 
-            let va = 0,
-                vb = 0;
-            switch (key) {
-                case "baseId":
-                    return a.baseId.localeCompare(b.baseId) * mult;
-                case "spotPrice":
-                    va = a.spot.rawPrice;
-                    vb = b.spot.rawPrice;
-                    break;
-                case "spotPcnt":
-                    va = a.spot.rawPcnt;
-                    vb = b.spot.rawPcnt;
-                    break;
-                case "linPrice":
-                    va = a.linear.rawPrice;
-                    vb = b.linear.rawPrice;
-                    break;
-                case "linPcnt":
-                    va = a.linear.rawPcnt;
-                    vb = b.linear.rawPcnt;
-                    break;
-                case "linOI":
-                    va = a.linear.rawOI;
-                    vb = b.linear.rawOI;
-                    break;
-                default:
-                    return 0;
-            }
+    const meta = parseRouteId(route.id);
+    const sym = upper(meta.symbol);
 
-            if (!va && !vb) return 0;
-            if (!va) return 1;
-            if (!vb) return -1;
-            return (va - vb) * mult;
-        });
-    }
-    _groupRoutes(item) {
-        const routes = item?.routesById ? Object.values(item.routesById) : [];
-        const byQuote = new Map();
+    const holder = route.chunks || route.chunk || {};
+    const raw = holder?.tickers?.data?.[sym];
 
-        for (const r of routes) {
-            const meta = parseRouteId(r?.id);
-            if (meta.exchange !== "bybit") continue;
-            if (meta.marketType !== "spot" && meta.marketType !== "linear") continue;
+    const prev = this.cache.get(route.id) || {};
+    if (!raw) return prev.lastPrice ? prev : null;
 
-            const key = meta.quote || "USD";
-            const group = byQuote.get(key) || {
-                baseId: String(item?.baseId || ""),
-                quote: key,
-                spotRoute: null,
-                linearRoute: null,
-            };
-            if (meta.marketType === "spot") group.spotRoute = r;
-            else group.linearRoute = r;
-            byQuote.set(key, group);
-        }
+    const merged = { ...prev, ...raw };
+    this.cache.set(route.id, merged);
+    return merged;
+  }
+  _createViewModel(group, selectedId) {
+    const spotRoute = group.spotRoute;
+    const linearRoute = group.linearRoute;
 
-        return Array.from(byQuote.values());
-    }
-    _resolveTicker(route) {
-        if (!route?.id) return null;
+    const spotId = spotRoute?.id || "";
+    const linId = linearRoute?.id || "";
 
-        const meta = parseRouteId(route.id);
-        const sym = upper(meta.symbol);
+    const spotTick = this._resolveTicker(spotRoute);
+    const linTick = this._resolveTicker(linearRoute);
 
-        const holder = route.chunks || route.chunk || {};
-        const raw = holder?.tickers?.data?.[sym];
+    const sPrice = spotTick?.lastPrice ?? spotTick?.last_price ?? null;
+    const sPcnt = spotTick?.price24hPcnt != null ? Number(spotTick.price24hPcnt) : null;
 
-        const prev = this.cache.get(route.id) || {};
-        if (!raw) return prev.lastPrice ? prev : null;
+    const lPrice = linTick?.lastPrice ?? linTick?.last_price ?? null;
+    const lPcnt = linTick?.price24hPcnt != null ? Number(linTick.price24hPcnt) : null;
 
-        const merged = { ...prev, ...raw };
-        this.cache.set(route.id, merged);
-        return merged;
-    }
-    _createViewModel(group, selectedId) {
-        const spotRoute = group.spotRoute;
-        const linearRoute = group.linearRoute;
+    const funding = linTick?.fundingRate;
+    const oi = linTick?.openInterest;
 
-        const spotId = spotRoute?.id || "";
-        const linId = linearRoute?.id || "";
+    const uSel = upper(selectedId);
+    const active = group.baseId === selectedId || spotId === selectedId || linId === selectedId || (spotId && upper(parseRouteId(spotId).symbol) === uSel) || (linId && upper(parseRouteId(linId).symbol) === uSel);
 
-        const spotTick = this._resolveTicker(spotRoute);
-        const linTick = this._resolveTicker(linearRoute);
+    const sNum = Number(sPrice);
+    const lNum = Number(lPrice);
 
-        const sPrice = spotTick?.lastPrice ?? spotTick?.last_price ?? null;
-        const sPcnt = spotTick?.price24hPcnt != null ? Number(spotTick.price24hPcnt) : null;
+    return {
+      key: `${group.baseId}:${group.quote}`,
+      baseId: group.baseId,
+      quote: group.quote,
+      active,
+      ids: { spot: spotId, linear: linId, base: group.baseId },
 
-        const lPrice = linTick?.lastPrice ?? linTick?.last_price ?? null;
-        const lPcnt = linTick?.price24hPcnt != null ? Number(linTick.price24hPcnt) : null;
+      spot: {
+        symbol: spotId ? parseRouteId(spotId).symbol : "—",
+        priceStr: formatPrice(sPrice),
+        pcntStr: formatPct(sPcnt),
+        pcntColor: getPctColor(sPcnt),
+        rawPrice: Number.isFinite(sNum) ? sNum : 0,
+        rawPcnt: Number.isFinite(sPcnt) ? sPcnt : 0,
+      },
 
-        const funding = linTick?.fundingRate;
-        const oi = linTick?.openInterest;
-
-        const uSel = upper(selectedId);
-        const active = group.baseId === selectedId || spotId === selectedId || linId === selectedId || (spotId && upper(parseRouteId(spotId).symbol) === uSel) || (linId && upper(parseRouteId(linId).symbol) === uSel);
-
-        const sNum = Number(sPrice);
-        const lNum = Number(lPrice);
-
-        return {
-            key: `${group.baseId}:${group.quote}`,
-            baseId: group.baseId,
-            quote: group.quote,
-            active,
-            ids: { spot: spotId, linear: linId, base: group.baseId },
-
-            spot: {
-                symbol: spotId ? parseRouteId(spotId).symbol : "—",
-                priceStr: formatPrice(sPrice),
-                pcntStr: formatPct(sPcnt),
-                pcntColor: getPctColor(sPcnt),
-                rawPrice: Number.isFinite(sNum) ? sNum : 0,
-                rawPcnt: Number.isFinite(sPcnt) ? sPcnt : 0,
-            },
-
-            linear: {
-                symbol: linId ? parseRouteId(linId).symbol : "—",
-                symClass: getFundingClass(funding),
-                priceStr: formatPrice(lPrice),
-                pcntStr: formatPct(lPcnt),
-                pcntColor: getPctColor(lPcnt),
-                oiStr: formatOI(oi),
-                rawPrice: Number.isFinite(lNum) ? lNum : 0,
-                rawPcnt: Number.isFinite(lPcnt) ? lPcnt : 0,
-                rawOI: Number.isFinite(Number(oi)) ? Number(oi) : 0,
-            },
-        };
-    }
+      linear: {
+        symbol: linId ? parseRouteId(linId).symbol : "—",
+        symClass: getFundingClass(funding),
+        priceStr: formatPrice(lPrice),
+        pcntStr: formatPct(lPcnt),
+        pcntColor: getPctColor(lPcnt),
+        oiStr: formatOI(oi),
+        rawPrice: Number.isFinite(lNum) ? lNum : 0,
+        rawPcnt: Number.isFinite(lPcnt) ? lPcnt : 0,
+        rawOI: Number.isFinite(Number(oi)) ? Number(oi) : 0,
+      },
+    };
+  }
 }

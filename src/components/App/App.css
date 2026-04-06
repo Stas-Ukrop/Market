@@ -1,7 +1,7 @@
 /* ./App.css */
 
 /* root */
-.appRoot {
+.container {
   display: flex;
   height: 100vh;
   min-height: 0;
@@ -43,22 +43,12 @@
 
 .appColGraph {
   flex: 1 1 auto;
-  min-width: 0; /* важно: чтобы граф занимал остаток и не раздувал ширину */
+  min-width: 0;
+  /* важно: чтобы граф занимал остаток и не раздувал ширину */
   overflow: hidden;
 }
 
 /* tickers header */
-.appHeader {
-  padding: 10px 10px 0;
-  flex: 0 0 auto;
-}
-.appTitle {
-  font-weight: 700;
-}
-.appSub {
-  font-size: 12px;
-  color: #666;
-}
 
 /* bodies */
 .appBody {
@@ -75,11 +65,13 @@
   display: flex;
   flex-direction: column;
 }
+
 .appObBody {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
 }
+
 .appFooter {
   flex: 0 0 auto;
   font-size: 11px;
@@ -97,12 +89,14 @@
   display: flex;
   flex-direction: column;
 }
+
 .appTradesHalf {
   flex: 1 1 50%;
   min-height: 0;
   overflow: hidden;
   border-bottom: 1px solid #eee;
 }
+
 .appTradesHalf:last-child {
   border-bottom: none;
 }
