@@ -26,7 +26,8 @@
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
     "prepare": "husky",
-    "startall":"react-scripts build && prettier --write \"src/**/*.{js,jsx,css,json}\" && husky"
+    "startall":"react-scripts build && prettier --write \"src/**/*.{js,jsx,css,json}\" && husky",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
