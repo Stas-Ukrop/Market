@@ -2,6 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://stas-ukrop.github.io/Market",
   "dependencies": {
     "@testing-library/dom": "^9.0.0",
     "@testing-library/jest-dom": "^5.17.0",
@@ -28,6 +29,7 @@
   },
   "eslintConfig": {
     "extends": [
+
       "react-app",
       "react-app/jest",
       "prettier"
