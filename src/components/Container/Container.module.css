@@ -1,0 +1,9 @@
+.container {
+    display: flex;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+    background: #3f0303;
+
+}

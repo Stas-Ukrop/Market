@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useState, useEffect, memo } from "react";
 import { FixedSizeList as List, areEqual } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
-import "./Tickers.css";
+import styles from "./Tickers.module.css";
 import { TickerController, PRICE_RANGES } from "./TickerController.js";
 import MarketStats from "./MarketStats.js";
 
@@ -19,7 +19,7 @@ const PriceCell = memo(function PriceCell({ text, num }) {
     prev.current = num;
   }, [num]);
 
-  return <div className={`price-cell ${trend === "up" ? "trend-up" : trend === "down" ? "trend-down" : ""}`}>{text}</div>;
+  return <div className={`${styles.price_cell} ${trend === "up" ? `${styles.trend_up}` : trend === "down" ? `${styles.trend_down}` : ""}`}>{text}</div>;
 });
 
 const Row = memo(function Row({ index, style, data }) {
@@ -30,7 +30,7 @@ const Row = memo(function Row({ index, style, data }) {
   const cellL = { textAlign: "left" };
 
   return (
-    <div style={style} className={`Tickers_row ${row.active ? "selected" : ""}`} onClick={() => onRowClick(row)}>
+    <div style={style} className={`${styles.Tickers_row} ${row.active ? `${styles.selected}` : ""}`} onClick={() => onRowClick(row)}>
       <div style={{ ...cellL, fontWeight: 700 }}>
         {index + 1}. {row.baseId}
         {row.quote !== "USDT" ? <span style={{ fontWeight: 400, color: "#666" }}>/{row.quote}</span> : null}
@@ -77,20 +77,22 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
     const active = sortConfig.key === key;
     const arrow = active ? (sortConfig.dir === "asc" ? "▲" : "▼") : "";
     return (
-      <div className={`sortable-head ${active ? "active" : ""}`} style={style} onClick={() => handleSort(key)}>
+      <div className={`styles.sortable_head ${active ? "active" : ""}`} style={style} onClick={() => handleSort(key)}>
         {label} <span className="sort-arrow">{arrow}</span>
       </div>
     );
   };
 
   return (
-    <div className="Tickers_root">
-      <div className="Tickers_top">
-        <div className="Tickers_controls">
-          <input className="Tickers_search" value={q} onChange={(e) => onQ?.(e.target.value)} placeholder="Search (BTC)..." />
+            <div className={`${styles.appCol} ${styles.appColTickers}`}>
+          <div className={styles.appBody}>
+    <div className={styles.Tickers_root}>
+      <div className={styles.Tickers_top}>
+        <div className={styles.Tickers_controls}>
+          <input className={styles.Tickers_search} value={q} onChange={(e) => onQ?.(e.target.value)} placeholder="Search (BTC)..." />
 
           {/* НОВЫЙ ФИЛЬТР: Выбор типа рынка (между поиском и старым фильтром) */}
-          <select className="Tickers_presence-select" value={marketPresence} onChange={(e) => setMarketPresence(e.target.value)}>
+          <select className={styles.Tickers_presence_select} value={marketPresence} onChange={(e) => setMarketPresence(e.target.value)}>
             <option value="all">Показать все</option>
             <option value="both">Спот + Фьючерс (Пары)</option>
             <option value="spot_only">Только Спот</option>
@@ -98,7 +100,7 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
           </select>
 
           {/* СТАРЫЙ ФИЛЬТР (Filter Bar) - оставлен без изменений */}
-          <div className="Tickers_filter-bar">
+          <div className={styles.Tickers_filter_bar}>
             <span>Filter:</span>
             <select value={rangeKey} onChange={(e) => setRangeKey(e.target.value)} disabled={filterMode === "all"}>
               {Object.keys(PRICE_RANGES).map((k) => (
@@ -121,7 +123,7 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
 
         <MarketStats symbol={selectedId} controller={ctrl} />
 
-        <div className="Tickers_head">
+        <div className={styles.Tickers_head}>
           {renderHead("Coin", "baseId", cellL)}
           <div style={cellL}>Spot</div>
           {renderHead("Price", "spotPrice", cellR)}
@@ -135,7 +137,7 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
         <div style={{ fontSize: 10, color: "#999", padding: "2px 8px", textAlign: "right" }}>Count: {viewRows.length}</div>
       </div>
 
-      <div className="Tickers_body">
+      <div className={styles.Tickers_body}>
         <AutoSizer>
           {({ height, width }) => (
             <List height={height} width={width} itemCount={viewRows.length} itemSize={32} itemData={itemData}>
@@ -144,6 +146,8 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
           )}
         </AutoSizer>
       </div>
-    </div>
+      </div>
+            </div>
+ </div>
   );
 }

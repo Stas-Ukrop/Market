@@ -26,12 +26,12 @@
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
     "prepare": "husky",
-    "startall":"react-scripts build && prettier --write \"src/**/*.{js,jsx,css,json}\" && husky",
+    "startall": "react-scripts build && prettier --write \"src/**/*.{js,jsx,css,json}\" && husky",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
-
       "react-app",
       "react-app/jest",
       "prettier"
@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",
+    "gh-pages": "^6.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1"

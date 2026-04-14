@@ -1,4 +1,25 @@
 /* src/components/Tickers/Tickers.css */
+.appCol {
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.appColTickers {
+  width: 820px;
+  flex: 0 0 720px;
+  border-right: 1px solid #ddd;
+  min-width: 760px;
+}
+
+.appBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
 
 .Tickers_root {
   display: flex;
@@ -34,7 +55,7 @@
 }
 
 /* Новый класс для селекта наличия рынков */
-.Tickers_presence-select {
+.Tickers_presence_select {
   width: 100%;
   padding: 6px;
   border: 1px solid #ccc;
@@ -44,7 +65,7 @@
   cursor: pointer;
 }
 
-.Tickers_filter-bar {
+.Tickers_filter_bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -55,7 +76,7 @@
   border-radius: 4px;
 }
 
-.Tickers_filter-bar label {
+.Tickers_filter_bar label {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -63,7 +84,7 @@
   user-select: none;
 }
 
-.Tickers_filter-bar select {
+.Tickers_filter_bar select {
   padding: 2px 4px;
   border: 1px solid #ddd;
   border-radius: 3px;
@@ -74,13 +95,14 @@
 .Tickers_head {
   display: grid;
   /* 8 Колонок: Base(110) Spot(90+70+55) Linear(90+70+55+65) */
-  grid-template-columns: 110px 90px 70px 55px 90px 70px 55px 65px;
+  grid-template-columns: 110px 110px 110px 65px 145px 70px 55px 65px;
   font-weight: 700;
   font-size: 12px;
   padding: 6px 0;
   border-top: 1px solid #eee;
   background: #fff;
-  align-items: center; /* Добавлено для выравнивания текста по центру высоты */
+  align-items: center;
+  /* Добавлено для выравнивания текста по центру высоты */
 }
 
 /* --- VIRTUAL BODY CONTAINER --- */
@@ -95,7 +117,7 @@
 .Tickers_row {
   display: grid;
   /* Columns должны строго совпадать с Header */
-  grid-template-columns: 110px 90px 70px 55px 90px 70px 55px 65px;
+  grid-template-columns: 110px 110px 110px 65px 145px 70px 55px 65px;
 
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
@@ -107,11 +129,11 @@
 }
 
 .Tickers_row:hover {
-  background-color: #f5faff;
+  background-color: #a1afd6;
 }
 
 .Tickers_row.selected {
-  background-color: #e3f2fd !important;
+  background-color: #a1afd6 !important;
 }
 
 .Tickers_row.selected::before {
@@ -126,30 +148,32 @@
 
 /* --- CELLS & COLORS --- */
 
-.price-cell {
+.price_cell {
   text-align: right;
-  padding-right: 6px;
+  /* padding-right: 6px; */
   border-radius: 2px;
   font-weight: 700;
 }
 
-.trend-up {
-  background-color: rgba(10, 143, 60, 0.1);
+.trend_up {
+  background-color: rgba(8, 231, 94, 0.3);
 }
 
-.trend-down {
-  background-color: rgba(198, 40, 40, 0.1);
+.trend_down {
+  background-color: rgba(212, 21, 21, 0.3);
 }
 
-.sortable-head {
+.sortable_head {
   cursor: pointer;
   user-select: none;
   position: relative;
 }
-.sortable-head:hover {
+
+.sortable_head:hover {
   background-color: #f5f5f5;
 }
-.sortable-head.active {
+
+.sortable_head.active {
   background-color: #eef3ff;
   color: #000;
 }
@@ -160,6 +184,7 @@
   font-size: 10px;
   opacity: 0.5;
 }
+
 .sortable-head.active .sort-arrow {
   opacity: 1;
 }
@@ -168,6 +193,7 @@
   color: #0a8f3c;
   font-weight: 700;
 }
+
 .sym-funding-neg {
   color: #c62828;
   font-weight: 700;
@@ -210,6 +236,7 @@
   font-size: 10px;
   padding: 0;
 }
+
 .ms-nav-btn:hover {
   background: #eee;
 }
@@ -225,6 +252,7 @@
   font-weight: 700;
   color: #333;
 }
+
 .ms-label {
   color: #666;
   font-size: 10px;

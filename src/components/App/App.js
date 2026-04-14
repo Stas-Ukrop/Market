@@ -1,10 +1,9 @@
 // src/App.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import AppBar from "../AppBar/AppBar.js";
-import "./App.css";
-
+import AppBar from "../AppBar";
+import styles from "./App.module.css";
+import Container from "../Container";
 import { appCore, parseRouteId, pickRoute, pickTradeChunk, pickKlineChunk } from "../../main.js";
-import { takeFullSnapshot } from "../snapshot/SnapshotEngine.js";
 
 // TradingCalculator удален отсюда, он теперь внутри Graph
 
@@ -127,15 +126,12 @@ export default function App() {
   const snap = appCore.kernel?.getSnapshot?.() || null;
 
   return (
-    <>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <AppBar />
+      <Container>
 
-      <div className="container">
-        <div className="appCol appColTickers">
-          <div className="appBody">
             <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
-          </div>
-        </div>
+
 
         <div className="appCol appColOrderbook">
           <div className="appObWrap">
@@ -209,7 +205,9 @@ export default function App() {
             />
           </div>
         </div>
-      </div>
-    </>
+     
+        
+</Container>
+    </div>
   );
 }
