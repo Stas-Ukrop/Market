@@ -84,70 +84,70 @@ export default function Tickers({ itemsMap, q, onQ, selectedId, onPick, controll
   };
 
   return (
-            <div className={`${styles.appCol} ${styles.appColTickers}`}>
-          <div className={styles.appBody}>
-    <div className={styles.Tickers_root}>
-      <div className={styles.Tickers_top}>
-        <div className={styles.Tickers_controls}>
-          <input className={styles.Tickers_search} value={q} onChange={(e) => onQ?.(e.target.value)} placeholder="Search (BTC)..." />
+    <div className={`${styles.appCol} ${styles.appColTickers}`}>
+      <div className={styles.appBody}>
+        <div className={styles.Tickers_root}>
+          <div className={styles.Tickers_top}>
+            <div className={styles.Tickers_controls}>
+              <input className={styles.Tickers_search} value={q} onChange={(e) => onQ?.(e.target.value)} placeholder="Search (BTC)..." />
 
-          {/* НОВЫЙ ФИЛЬТР: Выбор типа рынка (между поиском и старым фильтром) */}
-          <select className={styles.Tickers_presence_select} value={marketPresence} onChange={(e) => setMarketPresence(e.target.value)}>
-            <option value="all">Показать все</option>
-            <option value="both">Спот + Фьючерс (Пары)</option>
-            <option value="spot_only">Только Спот</option>
-            <option value="linear_only">Только Фьючерс</option>
-          </select>
+              {/* НОВЫЙ ФИЛЬТР: Выбор типа рынка (между поиском и старым фильтром) */}
+              <select className={styles.Tickers_presence_select} value={marketPresence} onChange={(e) => setMarketPresence(e.target.value)}>
+                <option value="all">Показать все</option>
+                <option value="both">Спот + Фьючерс (Пары)</option>
+                <option value="spot_only">Только Спот</option>
+                <option value="linear_only">Только Фьючерс</option>
+              </select>
 
-          {/* СТАРЫЙ ФИЛЬТР (Filter Bar) - оставлен без изменений */}
-          <div className={styles.Tickers_filter_bar}>
-            <span>Filter:</span>
-            <select value={rangeKey} onChange={(e) => setRangeKey(e.target.value)} disabled={filterMode === "all"}>
-              {Object.keys(PRICE_RANGES).map((k) => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
-            <label>
-              <input type="checkbox" checked={filterMode === "spot"} onChange={() => setFilterMode(filterMode === "spot" ? "all" : "spot")} /> Spot
-            </label>
-            <label>
-              <input type="checkbox" checked={filterMode === "linear"} onChange={() => setFilterMode(filterMode === "linear" ? "all" : "linear")} /> Perp
-            </label>
-            <label>
-              <input type="checkbox" checked={filterMode === "all"} onChange={() => setFilterMode("all")} /> All
-            </label>
+              {/* СТАРЫЙ ФИЛЬТР (Filter Bar) - оставлен без изменений */}
+              <div className={styles.Tickers_filter_bar}>
+                <span>Filter:</span>
+                <select value={rangeKey} onChange={(e) => setRangeKey(e.target.value)} disabled={filterMode === "all"}>
+                  {Object.keys(PRICE_RANGES).map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+                <label>
+                  <input type="checkbox" checked={filterMode === "spot"} onChange={() => setFilterMode(filterMode === "spot" ? "all" : "spot")} /> Spot
+                </label>
+                <label>
+                  <input type="checkbox" checked={filterMode === "linear"} onChange={() => setFilterMode(filterMode === "linear" ? "all" : "linear")} /> Perp
+                </label>
+                <label>
+                  <input type="checkbox" checked={filterMode === "all"} onChange={() => setFilterMode("all")} /> All
+                </label>
+              </div>
+            </div>
+
+            <MarketStats symbol={selectedId} controller={ctrl} />
+
+            <div className={styles.Tickers_head}>
+              {renderHead("Coin", "baseId", cellL)}
+              <div style={cellL}>Spot</div>
+              {renderHead("Price", "spotPrice", cellR)}
+              {renderHead("24h%", "spotPcnt", cellR)}
+              <div style={cellL}>Linear</div>
+              {renderHead("Price", "linPrice", cellR)}
+              {renderHead("24h%", "linPcnt", cellR)}
+              {renderHead("OI", "linOI", cellR)}
+            </div>
+
+            <div style={{ fontSize: 10, color: "#999", padding: "2px 8px", textAlign: "right" }}>Count: {viewRows.length}</div>
+          </div>
+
+          <div className={styles.Tickers_body}>
+            <AutoSizer>
+              {({ height, width }) => (
+                <List height={height} width={width} itemCount={viewRows.length} itemSize={32} itemData={itemData}>
+                  {Row}
+                </List>
+              )}
+            </AutoSizer>
           </div>
         </div>
-
-        <MarketStats symbol={selectedId} controller={ctrl} />
-
-        <div className={styles.Tickers_head}>
-          {renderHead("Coin", "baseId", cellL)}
-          <div style={cellL}>Spot</div>
-          {renderHead("Price", "spotPrice", cellR)}
-          {renderHead("24h%", "spotPcnt", cellR)}
-          <div style={cellL}>Linear</div>
-          {renderHead("Price", "linPrice", cellR)}
-          {renderHead("24h%", "linPcnt", cellR)}
-          {renderHead("OI", "linOI", cellR)}
-        </div>
-
-        <div style={{ fontSize: 10, color: "#999", padding: "2px 8px", textAlign: "right" }}>Count: {viewRows.length}</div>
       </div>
-
-      <div className={styles.Tickers_body}>
-        <AutoSizer>
-          {({ height, width }) => (
-            <List height={height} width={width} itemCount={viewRows.length} itemSize={32} itemData={itemData}>
-              {Row}
-            </List>
-          )}
-        </AutoSizer>
-      </div>
-      </div>
-            </div>
- </div>
+    </div>
   );
 }

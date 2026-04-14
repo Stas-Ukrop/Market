@@ -129,9 +129,7 @@ export default function App() {
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <AppBar />
       <Container>
-
-            <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
-
+        <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
 
         <div className="appCol appColOrderbook">
           <div className="appObWrap">
@@ -205,9 +203,7 @@ export default function App() {
             />
           </div>
         </div>
-     
-        
-</Container>
+      </Container>
     </div>
   );
 }
