@@ -1,6 +1,6 @@
 // src/components/Trades/PublicTrades.js
 import React, { memo, useRef, useState, useMemo, useLayoutEffect, useCallback } from "react";
-import "./PublicTrades.css";
+import styles from "./PublicTrades.module.css";
 import { TradesController } from "./TradesController.js";
 
 const DEVIATION_OPTIONS = [-50, -30, -20, -10, 0, 10, 20, 30, 50, 100];
@@ -10,21 +10,21 @@ const DEVIATION_OPTIONS = [-50, -30, -20, -10, 0, 10, 20, 30, 50, 100];
 =========================== */
 
 const TapeRow = memo(({ row }) => (
-  <div className={`pt-trade-row ${row.flashClass}`}>
-    <span className={`pt-price ${row.sideClass}`}>{row.priceStr}</span>
-    <span className="pt-vol">{row.volStr}</span>
-    <span className="pt-time">{row.timeStr}</span>
+  <div className={`${styles["pt-trade-row"]} ${styles[row.flashClass]}`}>
+    <span className={`${styles["pt-price"]} ${styles[row.sideClass]}`}>{row.priceStr}</span>
+    <span className={styles["pt-vol"]}>{row.volStr}</span>
+    <span className={styles["pt-time"]}>{row.timeStr}</span>
   </div>
 ));
 
 const AnalysisRow = memo(({ row, onPriceClick }) => (
-  <div className={`pt-analysis-row ${row.lastClass}`}>
-    <span className="pt-bold pt-price-action" onClick={() => onPriceClick(row.priceStr)} title="Click to copy to Range">
+  <div className={`${styles["pt-analysis-row"]} ${styles[row.lastClass]}`}>
+    <span className={`${styles["pt-bold"]} ${styles["pt-price-action"]}`} onClick={() => onPriceClick(row.priceStr)} title="Click to copy to Range">
       {row.priceStr}
     </span>
-    <span className="pt-right pt-green">{row.buyStr}</span>
-    <span className="pt-right pt-red">{row.sellStr}</span>
-    <span className={`pt-right pt-bold ${row.deltaClass}`}>{row.deltaStr}</span>
+    <span className={`${styles["pt-right"]} ${styles["pt-green"]}`}>{row.buyStr}</span>
+    <span className={`${styles["pt-right"]} ${styles["pt-red"]}`}>{row.sellStr}</span>
+    <span className={`${styles["pt-right"]} ${styles["pt-bold"]} ${styles[row.deltaClass]}`}>{row.deltaStr}</span>
   </div>
 ));
 
@@ -81,37 +81,40 @@ export default function PublicTrades({
   const onToggleGraph = useCallback(() => setUiRev(ctrl.setShowOnGraph(!ui.showOnGraph)), [ctrl, ui.showOnGraph]);
 
   return (
-    <div className="pt-root">
+     <div className={`${styles["appCol"]} ${styles["appColTrades"]}`}>
+      <div className={styles.appTradesWrap}>
+            <div className={styles.appTradesHalf}>
+    <div className={styles["pt-root"]}>
       {/* --- ANALYSIS PANEL --- */}
-      <div className="pt-panel pt-analysis">
-        <div className="pt-range-block">
+      <div className={`${styles["pt-panel"]} ${styles["pt-analysis"]}`}>
+        <div className={styles["pt-range-block"]}>
           {/* Inputs Row */}
-          <div className="pt-range-row">
-            <input className={`pt-range-input ${ui.targetInput === "min" ? "pt-input-target" : ""}`} placeholder="Min" value={ui.rangeMin} onFocus={onMinFocus} onChange={onMinChange} />
-            <span className="pt-range-sep">-</span>
-            <input className={`pt-range-input ${ui.targetInput === "max" ? "pt-input-target" : ""}`} placeholder="Max" value={ui.rangeMax} onFocus={onMaxFocus} onChange={onMaxChange} />
+          <div className={styles["pt-range-row"]}>
+            <input className={`${styles["pt-range-input"]} ${ui.targetInput === "min" ? styles["pt-input-target"] : ""}`} placeholder="Min" value={ui.rangeMin} onFocus={onMinFocus} onChange={onMinChange} />
+            <span className={styles["pt-range-sep"]}>-</span>
+            <input className={`${styles["pt-range-input"]} ${ui.targetInput === "max" ? styles["pt-input-target"] : ""}`} placeholder="Max" value={ui.rangeMax} onFocus={onMaxFocus} onChange={onMaxChange} />
           </div>
 
           {/* Stats & Controls */}
           {rangeStats ? (
             <>
-              <div className="pt-range-row pt-range-stats">
-                <span className="pt-green" title="Avg Buy Volume">
+              <div className={`${styles["pt-range-row"]} ${styles["pt-range-stats"]}`}>
+                <span className={styles["pt-green"]} title="Avg Buy Volume">
                   ØB: {rangeStats.avgBuyStr}
                 </span>
-                <span className="pt-red" title="Average Sell Volume">
+                <span className={styles["pt-red"]} title="Average Sell Volume">
                   ØS: {rangeStats.avgSellStr}
                 </span>
               </div>
 
-              <div className="pt-range-row pt-range-totals">
-                <span className="pt-green">ΣB: {rangeStats.sumBuyStr}</span>
-                <span className="pt-red">ΣS: {rangeStats.sumSellStr}</span>
-                <span className={`pt-range-delta ${rangeStats.totalDelta > 0 ? "pt-green" : "pt-red"}`}>{rangeStats.totalDelta > 0 ? "B" : "S"}</span>
+              <div className={`${styles["pt-range-row"]} ${styles["pt-range-totals"]}`}>
+                <span className={`${styles["pt-green"]}`}>ΣB: {rangeStats.sumBuyStr}</span>
+                <span className={styles["pt-red"]}>ΣS: {rangeStats.sumSellStr}</span>
+                <span className={`${styles["pt-range-delta"]} ${rangeStats.totalDelta > 0 ? styles["pt-green"] : styles["pt-red"]}`}>{rangeStats.totalDelta > 0 ? "B" : "S"}</span>
               </div>
 
-              <div className="pt-range-controls">
-                <select className="pt-dev-select" value={ui.deviationPct} onChange={onDevChange} title="Deviation %">
+              <div className={styles["pt-range-controls"]}>
+                <select className={styles["pt-dev-select"]} value={ui.deviationPct} onChange={onDevChange} title="Deviation %">
                   {DEVIATION_OPTIONS.map((v) => (
                     <option key={v} value={v}>
                       {v > 0 ? `+${v}` : v}%
@@ -119,26 +122,26 @@ export default function PublicTrades({
                   ))}
                 </select>
 
-                <button className={`pt-graph-btn ${ui.showOnGraph ? "active" : ""}`} onClick={onToggleGraph}>
+                <button className={`${styles["pt-graph-btn"]} ${ui.showOnGraph ? styles["active"] : ""}`} onClick={onToggleGraph}>
                   {ui.showOnGraph ? "ON GRAPH" : "TO GRAPH"}
                 </button>
               </div>
             </>
           ) : (
-            <div className="pt-range-placeholder">{ui.targetInput ? `Set ${String(ui.targetInput).toUpperCase()}` : "Range Analysis"}</div>
+            <div className={`${styles["pt-range-placeholder"]}`}>{ui.targetInput ? `Set ${String(ui.targetInput).toUpperCase()}` : "Range Analysis"}</div>
           )}
         </div>
 
         {/* Grid Header */}
-        <div className="pt-head pt-analysis-row pt-analysis-head">
+        <div className={`${styles["pt-head"]} ${styles["pt-analysis-row"]} ${styles["pt-analysis-head"]}`}>
           <span>Px</span>
-          <span className="pt-right">Buy</span>
-          <span className="pt-right">Sell</span>
-          <span className="pt-right">Δ</span>
+          <span className={styles["pt-right"]}>Buy</span>
+          <span className={styles["pt-right"]}>Sell</span>
+          <span className={styles["pt-right"]}>Δ</span>
         </div>
 
         {/* Grid Body */}
-        <div className="pt-scroll">
+        <div className={styles["pt-scroll"]}>
           {analysisRows.map((row) => (
             <AnalysisRow key={row.key} row={row} onPriceClick={handlePriceClick} />
           ))}
@@ -146,18 +149,22 @@ export default function PublicTrades({
       </div>
 
       {/* --- TAPE PANEL --- */}
-      <div className="pt-panel pt-tape">
-        <div className="pt-head pt-tape-head">
-          <span className="pt-title">{title}</span>
-          <span className="pt-muted">Tape</span>
+      <div className={`${styles["pt-panel"]} ${styles["pt-tape"]}`}>
+        <div className={`${styles["pt-head"]} ${styles["pt-tape-head"]}`}>
+          <span className={styles["pt-title"]}>{title}</span>
+          <span className={styles["pt-muted"]}>Tape</span>
         </div>
 
-        <div className="pt-scroll">
+        <div className={styles["pt-scroll"]}>
           {tapeRows.map((row) => (
             <TapeRow key={row.key} row={row} />
           ))}
         </div>
       </div>
-    </div>
+      </div>
+        </div>
+        </div>
+        </div>
+      
   );
 }

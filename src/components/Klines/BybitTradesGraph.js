@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from "
 import * as LWC from "lightweight-charts";
 import { soundManager } from "../hooks/SoundEngine.js";
 import { TradingCalculator } from "../hooks/TradingCalculator.js";
+import styles from "./BybitTradesGraph.module.css";
 
 /* ===========================
    Helpers
@@ -807,16 +808,16 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
     : null;
 
   return (
-    <div style={{ ...styles.card, flex: isCollapsed ? "0 0 auto" : 1, minHeight: isCollapsed ? "auto" : 0 }}>
-      <div style={styles.header}>
-        <div style={styles.info}>
-          <span style={{ ...styles.dot, background: dotColor }} />
+    <div className={styles.card} style={{  flex: isCollapsed ? "0 0 auto" : 1, minHeight: isCollapsed ? "auto" : 0 }}>
+      <div className={styles.header}>
+        <div className={styles.info}>
+          <span className={styles.dot} style={{ background: dotColor }} />
           <b style={{ color: category === "spot" ? "#2196f3" : "#ab47bc", fontSize: 13 }}>{category.toUpperCase()}</b>
-          <span style={styles.symbol}>{symbol}</span>
-          <button onClick={handleToggleCalc} style={{ ...styles.btn, background: "#f0f0f0", fontWeight: "bold", marginLeft: 8 }} title="Open Calculator">
+          <span className={styles.symbol}>{symbol}</span>
+          <button className={styles.btn} onClick={handleToggleCalc} style={{  background: "#f0f0f0", fontWeight: "bold", marginLeft: 8 }} title="Open Calculator">
             🧮
           </button>
-          <button onClick={() => setIsCollapsed(!isCollapsed)} style={{ ...styles.btn, marginLeft: 8, width: 24 }}>
+          <button className={styles.btn} onClick={() => setIsCollapsed(!isCollapsed)} style={{  marginLeft: 8, width: 24 }}>
             {isCollapsed ? "+" : "−"}
           </button>
           {!isCollapsed && (
@@ -826,8 +827,8 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
                   setIsSelectingAnchor((v) => !v);
                   if (anchorTime) setAnchorTime(null);
                 }}
+                className={styles.btn}
                 style={{
-                  ...styles.btn,
                   marginLeft: 10,
                   border: isSelectingAnchor ? "1px solid #ff9800" : "none",
                   color: anchorTime ? "#ef6c00" : "#555",
@@ -835,20 +836,20 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
               >
                 ⚓ {anchorTime ? "ON" : "VWAP"}
               </button>
-              <button onClick={() => setIsMuted(!isMuted)} style={{ ...styles.btn, marginLeft: 6 }}>
+              <button onClick={() => setIsMuted(!isMuted)} className={styles.btn} style={{  marginLeft: 6 }}>
                 {isMuted ? "🔇" : "🔊"}
               </button>
-              <button onClick={() => setShowFilters(!showFilters)} style={{ ...styles.btn, marginLeft: 4, border: "1px solid #ddd" }}>
+              <button onClick={() => setShowFilters(!showFilters)} className={styles.btn} style={{  marginLeft: 4, border: "1px solid #ddd" }}>
                 ⚙
               </button>
               {showFilters && (
-                <div style={styles.filterRow}>
+                <div className={styles.filterRow}>
                   {FILTER_CONFIG.map((c) => (
-                    <div key={c.color} style={styles.filterGroup}>
+                    <div key={c.color} className={styles.filterGroup}>
                       <button
                         onClick={() => toggleVisibility(c.color)}
+                        className={styles.filterBtn}
                         style={{
-                          ...styles.filterBtn,
                           borderColor: c.color,
                           background: lineSettings[c.color]?.visible ? c.color : "#eee",
                           color: lineSettings[c.color]?.visible ? "#fff" : "#999",
@@ -861,8 +862,8 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
                   <div style={{ width: 1, height: 14, background: "#ddd", margin: "0 4px" }} />
                   <button
                     onClick={() => setShowRangeLines(!showRangeLines)}
+                    className={styles.filterBtn}
                     style={{
-                      ...styles.filterBtn,
                       background: showRangeLines ? "#555" : "#fff",
                       color: showRangeLines ? "#fff" : "#333",
                     }}
@@ -879,7 +880,7 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
                 </div>
               )}
               {hover && (
-                <span style={styles.ohlc}>
+                <span className={styles.ohlc}>
                   O:<b style={{ color: "#000" }}>{fmtPrice(hover.open, p)}</b> H:<b>{fmtPrice(hover.high, p)}</b> L:
                   <b>{fmtPrice(hover.low, p)}</b> C:<b>{fmtPrice(hover.close, p)}</b>
                 </span>
@@ -888,13 +889,13 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
           )}
         </div>
         {!isCollapsed && (
-          <div style={styles.tools}>
+          <div className={styles.tools}>
             {INTERVALS.map((i) => (
               <button
                 key={i.ui}
                 onClick={() => setInterval?.(i.ui)}
+                className={styles.btn}
                 style={{
-                  ...styles.btn,
                   background: interval === i.ui ? "#26a69a" : "transparent",
                   color: interval === i.ui ? "#fff" : "#777",
                 }}
@@ -902,13 +903,13 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
                 {i.label}
               </button>
             ))}
-            <div style={styles.sep} />
+            <div className={styles.sep} />
             {LIMITS.map((l) => (
               <button
                 key={l}
                 onClick={() => setLimit?.(l)}
+                className={styles.btn}
                 style={{
-                  ...styles.btn,
                   background: Number(limit) === l ? "#7e57c2" : "transparent",
                   color: Number(limit) === l ? "#fff" : "#777",
                 }}
@@ -920,7 +921,7 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
         )}
       </div>
       {!isCollapsed && (
-        <div ref={containerRef} style={styles.chartBody} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+        <div ref={containerRef} className={styles.chartBody} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
           {calcSnapshot && <TradingCalculator onClose={() => setCalcSnapshot(null)} isSpot={category === "spot"} tickerPrice={calcSnapshot.price} fundingRate={calcSnapshot.funding} onApplyToGraph={handleApplyCalcToGraph} />}
           <div
             style={{
@@ -984,7 +985,9 @@ export default function BybitTradesGraph({ spotSymbol, linearSymbol, spotChunk, 
   const setLinearLimitEff = setLinearLimit ?? setGrafBarsLimit;
 
   return (
-    <div style={styles.container}>
+    <div className={`${styles.appCol}  ${styles.appColGraph}`}>
+              <div className={styles.appBody}>
+    <div className={styles.container}>
       {spotSymbol ? (
         <ChartWithVolume
           symbol={spotSymbol}
@@ -1023,76 +1026,13 @@ export default function BybitTradesGraph({ spotSymbol, linearSymbol, spotChunk, 
           fundingRate={funding}
         />
       ) : (
-        <div style={styles.emptyState}>LINEAR Not Available</div>
+        <div className={styles.emptyState}>LINEAR Not Available</div>
       )}
-      {!hasData && <div style={styles.loadingState}>Waiting for data...</div>}
-    </div>
+      {!hasData && <div className={styles.loadingState}>Waiting for data...</div>}
+        </div>
+      </div>
+      </div>
   );
 }
 
-/* ===========================
-   Styles
-=========================== */
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    padding: 4,
-    gap: 6,
-    boxSizing: "border-box",
-    background: "#f7f8fa",
-    position: "relative",
-  },
-  card: {
-    display: "flex",
-    flexDirection: "column",
-    background: "#fff",
-    border: "1px solid #e0e0e0",
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "4px 8px",
-    borderBottom: "1px solid #eee",
-    height: 32,
-  },
-  info: { display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
-  symbol: { fontSize: 13, fontWeight: "700", color: "#333" },
-  ohlc: { fontSize: 10, fontFamily: "monospace", color: "#666", marginLeft: 12, display: "flex", gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: "50%" },
-  tools: { display: "flex", gap: 2 },
-  btn: {
-    border: "none",
-    padding: "2px 5px",
-    fontSize: 10,
-    borderRadius: 3,
-    cursor: "pointer",
-    background: "transparent",
-    color: "#555",
-  },
-  sep: { width: 1, height: 12, background: "#ddd", margin: "0 4px" },
-  chartBody: { flex: 1, position: "relative", display: "flex", flexDirection: "column", minHeight: 0 },
-  emptyState: { padding: 20, textAlign: "center", color: "#999", border: "1px dashed #ccc", borderRadius: 6 },
-  loadingState: { padding: 10, textAlign: "center", color: "#888", fontSize: 12 },
-  filterRow: {
-    display: "flex",
-    gap: 4,
-    alignItems: "center",
-    background: "#f5f5f5",
-    padding: "2px 6px",
-    borderRadius: 4,
-  },
-  filterGroup: { display: "flex" },
-  filterBtn: {
-    border: "1px solid #ccc",
-    padding: "1px 4px",
-    fontSize: 9,
-    borderRadius: 3,
-    cursor: "pointer",
-    background: "#fff",
-  },
-};
+

@@ -2,30 +2,30 @@
 import React, { memo } from "react";
 import { FixedSizeList as List, areEqual } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
-import "./BybitOrderbooks.css";
+import styles from "./BybitOrderbooks.module.css";
 
 const ROW_H = 18;
 
 const StatusDot = memo(({ status }) => {
   const s = String(status || "idle");
   const color = s === "live" ? "#26a69a" : s === "stale" ? "#ff9800" : "#999";
-  return <span className="ob-dot" style={{ backgroundColor: color }} title={s} />;
+  return <span className={styles["ob-dot"]} style={{ backgroundColor: color }} title={s} />;
 });
 
 const Row = memo(({ index, style, data }) => {
   const { items, type, offsetY = 0 } = data;
   const row = items[index];
-  if (!row) return <div style={style} className={`ob-row ${type}`} />;
+  if (!row) return <div style={style} className={`${styles["ob-row"]} ${styles[type]}`} />;
 
   const top = parseFloat(style.top) || 0;
   const finalStyle = type === "ask" ? { ...style, top: top + offsetY } : style;
 
   return (
-    <div style={finalStyle} className={`ob-row ${type}${row.isStrong ? " strong" : ""}`}>
-      <div className="ob-bg-bar" style={{ width: `${row.sizePct}%` }} />
-      <span className="ob-price">{row.priceStr}</span>
-      <span className="ob-size">{row.sizeStr}</span>
-      <span className="ob-cum">{row.cumStr}</span>
+    <div style={finalStyle} className={`${styles["ob-row"]} ${styles[type]} ${row.isStrong ? styles["strong"] : ""}`}>
+      <div className={styles["ob-bg-bar"]} style={{ width: `${row.sizePct}%` }} />
+      <span className={styles["ob-price"]}>{row.priceStr}</span>
+      <span className={styles["ob-size"]}>{row.sizeStr}</span>
+      <span className={styles["ob-cum"]}>{row.cumStr}</span>
     </div>
   );
 }, areEqual);
@@ -38,17 +38,18 @@ const OrderbookPanel = memo(({ title, view }) => {
   const domLabel = br >= 0.55 ? "Buyers" : br <= 0.45 ? "Sellers" : "Neutral";
 
   return (
-    <div className="ob-panel">
-      <div className="ob-head">
-        <div className="ob-head-left">
+    
+    <div className={styles["ob-panel"]}>
+      <div className={styles["ob-head"]}>
+        <div className={styles["ob-head-left"]}>
           <StatusDot status={status} />
-          <b className="ob-title">{title}</b>
-          <span className="ob-symbol">{symbol || "—"}</span>
+          <b className={styles["ob-title"]}>{title}</b>
+          <span className={styles["ob-symbol"]}>{symbol || "—"}</span>
         </div>
       </div>
 
-      <div className="ob-body">
-        <div className="ob-side asks">
+      <div className={styles["ob-body"]}>
+        <div className={`${styles["ob-side"]} ${styles.asks}`}>
           <AutoSizer>
             {({ height, width }) => {
               const totalH = asks.length * ROW_H;
@@ -62,29 +63,29 @@ const OrderbookPanel = memo(({ title, view }) => {
           </AutoSizer>
         </div>
 
-        <div className="ob-mid">
-          <div className="ob-mid-sub">
-            <span className="ob-mid-price">B: {bestBidStr}</span>
-            <span className="ob-mid-price">P: {midStr}</span>
-            <span className="ob-mid-price">A: {bestAskStr}</span>
+        <div className={styles["ob-mid"]}>
+          <div className={styles["ob-mid-sub"]}>
+            <span className={styles["ob-mid-price"]}>B: {bestBidStr}</span>
+            <span className={styles["ob-mid-price"]}>P: {midStr}</span>
+            <span className={styles["ob-mid-price"]}>A: {bestAskStr}</span>
           </div>
 
-          <div className="ob-imbalance-bar" title={`ASK ${askCumStr} | BID ${bidCumStr}`}>
-            <div className="ob-imbalance-ask" style={{ width: `${(1 - br) * 100}%` }} />
-            <div className="ob-imbalance-bid" style={{ width: `${br * 100}%` }} />
+          <div className={styles["ob-imbalance-bar"]} title={`ASK ${askCumStr} | BID ${bidCumStr}`}>
+            <div className={styles["ob-imbalance-ask"]} style={{ width: `${(1 - br) * 100}%` }} />
+            <div className={styles["ob-imbalance-bid"]} style={{ width: `${br * 100}%` }} />
           </div>
 
-          <div className="ob-imbalance-meta">
-            <span className={`ob-dom ${domClass}`}>
+          <div className={styles["ob-imbalance-meta"]}>
+            <span className={`${styles["ob-dom"]} ${domClass}`}>
               {domLabel}: {domPct}%
             </span>
-            <span className="ob-spread">
+            <span className={styles["ob-spread"]}>
               Spr: {spreadAbsStr} ({spreadPctStr})
             </span>
           </div>
         </div>
 
-        <div className="ob-side bids">
+        <div className={`${styles["ob-side"]} ${styles.bids}`}>
           <AutoSizer>
             {({ height, width }) => (
               <List height={height} width={width} itemCount={bids.length} itemSize={ROW_H} itemData={{ items: bids, type: "bid", offsetY: 0 }}>
@@ -100,13 +101,16 @@ const OrderbookPanel = memo(({ title, view }) => {
 
 export default function BybitOrderbooks({ coin, spotView, linearView, rows, onRowsChange, onToggleAnalysis, isAnalyzing }) {
   return (
-    <div className="ob-root">
-      <div className="ob-caption">
+            <div className={`${styles.appCol} ${styles.appColOrderbook}`}>
+      <div className={styles.appObWrap}>
+                <div className={styles.appObBody}>
+    <div className={styles["ob-root"]}>
+      <div className={styles["ob-caption"]}>
         <b>Orderbook</b>
-        <span className="ob-muted">{coin || ""}</span>
+        <span className={styles["ob-muted"]}>{coin || ""}</span>
 
         <button
-          className="ob-btn-search"
+          className={styles["ob-btn"]}
           onClick={onToggleAnalysis}
           title={isAnalyzing ? "Stop searching" : "Find Walls and Spoof Levels"}
           style={{
@@ -124,9 +128,9 @@ export default function BybitOrderbooks({ coin, spotView, linearView, rows, onRo
           {isAnalyzing ? "Stop Search" : "Search Walls"}
         </button>
 
-        <div className="ob-caption-controls">
-          <span className="ob-muted">Rows:</span>
-          <select className="ob-select" value={rows} onChange={(e) => onRowsChange(Number(e.target.value))}>
+        <div className={styles["ob-caption-controls"]}>
+          <span className={styles["ob-muted"]}>Rows:</span>
+          <select className={styles["ob-select"]} value={rows} onChange={(e) => onRowsChange(Number(e.target.value))}>
             {[20, 35, 50, 100, 200].map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -136,10 +140,13 @@ export default function BybitOrderbooks({ coin, spotView, linearView, rows, onRo
         </div>
       </div>
 
-      <div className="ob-grid">
+      <div className={styles["ob-grid"]}>
         <OrderbookPanel title="SPOT" view={spotView} />
         <OrderbookPanel title="LINEAR" view={linearView} />
       </div>
-    </div>
+          </div>
+        </div>
+      </div>
+      </div>
   );
 }

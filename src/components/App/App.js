@@ -123,17 +123,13 @@ export default function App() {
     return Number.isFinite(rawFunding) ? rawFunding * 100 : 0.01;
   }, [getTickerData, linearRoute, linSymbol, tick]);
 
-  const snap = appCore.kernel?.getSnapshot?.() || null;
-
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <AppBar />
       <Container>
         <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
 
-        <div className="appCol appColOrderbook">
-          <div className="appObWrap">
-            <div className="appObBody">
+
               <BybitOrderbooks
                 coin={selectedBaseId}
                 spotView={spotData.view}
@@ -149,24 +145,18 @@ export default function App() {
                 }}
                 isAnalyzing={appCore.obCtrl.isAnalyzing()}
               />
-            </div>
-            <div className="appFooter">shards: {snap?.shards?.length ?? 0}</div>
-          </div>
-        </div>
+            
+            
+        
 
-        <div className="appCol appColTrades">
-          <div className="appTradesWrap">
-            <div className="appTradesHalf">
+       
+            
               <PublicTrades controller={appCore.spotTradesCtrl} title={`Spot Trades (${spotSymbol})`} tradeChunk={spotTradeChunk} symbol={spotSymbol} interval={spotGrafInterval} onUpdateMarkers={setSpotRangeMarkers} />
-            </div>
-            <div className="appTradesHalf">
+       
               <PublicTrades controller={appCore.linearTradesCtrl} title={`Linear Trades (${linSymbol})`} tradeChunk={linearTradeChunk} symbol={linSymbol} interval={linearGrafInterval} onUpdateMarkers={setLinearRangeMarkers} />
-            </div>
-          </div>
-        </div>
 
-        <div className="appCol appColGraph">
-          <div className="appBody">
+
+
             <BybitTradesGraph
               coin={selectedBaseId}
               spotSymbol={spotSymbol}
@@ -201,8 +191,8 @@ export default function App() {
               linearPrice={linearPriceVal}
               funding={currentFundingForCalc}
             />
-          </div>
-        </div>
+          
+        
       </Container>
     </div>
   );
