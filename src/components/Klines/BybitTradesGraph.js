@@ -126,14 +126,20 @@ const FILTER_CONFIG = [
 =========================== */
 function useChunkCandles(chunk) {
   const history = chunk?.history ?? chunk?.data?.history ?? chunk?.bars ?? [];
+  const srcTs = Number(chunk?.lastUpdateTs) || 0;
+
   return useMemo(() => {
     if (!Array.isArray(history) || history.length === 0) return [];
+
     const barMap = new Map();
+
     for (let i = 0; i < history.length; i++) {
       const bar = history[i];
       if (!bar) continue;
+
       const t = toUnixSec(bar.ts ?? bar.t ?? bar.time ?? bar.start ?? bar.startTime);
       if (!t) continue;
+
       const c = parseFloat(bar.c ?? bar.close ?? bar.C);
       if (!Number.isFinite(c)) continue;
 
@@ -146,8 +152,9 @@ function useChunkCandles(chunk) {
         volume: parseFloat(bar.v ?? bar.volume ?? bar.V) || 0,
       });
     }
+
     return Array.from(barMap.values()).sort((a, b) => a.time - b.time);
-  }, [history]);
+  }, [history, srcTs]);
 }
 
 const volColor = (c) => (c.close >= c.open ? "rgba(38, 166, 154, 0.5)" : "rgba(239, 83, 80, 0.5)");
@@ -808,16 +815,16 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
     : null;
 
   return (
-    <div className={styles.card} style={{  flex: isCollapsed ? "0 0 auto" : 1, minHeight: isCollapsed ? "auto" : 0 }}>
+    <div className={styles.card} style={{ flex: isCollapsed ? "0 0 auto" : 1, minHeight: isCollapsed ? "auto" : 0 }}>
       <div className={styles.header}>
         <div className={styles.info}>
           <span className={styles.dot} style={{ background: dotColor }} />
           <b style={{ color: category === "spot" ? "#2196f3" : "#ab47bc", fontSize: 13 }}>{category.toUpperCase()}</b>
           <span className={styles.symbol}>{symbol}</span>
-          <button className={styles.btn} onClick={handleToggleCalc} style={{  background: "#f0f0f0", fontWeight: "bold", marginLeft: 8 }} title="Open Calculator">
+          <button className={styles.btn} onClick={handleToggleCalc} style={{ background: "#f0f0f0", fontWeight: "bold", marginLeft: 8 }} title="Open Calculator">
             🧮
           </button>
-          <button className={styles.btn} onClick={() => setIsCollapsed(!isCollapsed)} style={{  marginLeft: 8, width: 24 }}>
+          <button className={styles.btn} onClick={() => setIsCollapsed(!isCollapsed)} style={{ marginLeft: 8, width: 24 }}>
             {isCollapsed ? "+" : "−"}
           </button>
           {!isCollapsed && (
@@ -836,10 +843,10 @@ const ChartWithVolume = memo(function ChartWithVolume({ symbol, category, candle
               >
                 ⚓ {anchorTime ? "ON" : "VWAP"}
               </button>
-              <button onClick={() => setIsMuted(!isMuted)} className={styles.btn} style={{  marginLeft: 6 }}>
+              <button onClick={() => setIsMuted(!isMuted)} className={styles.btn} style={{ marginLeft: 6 }}>
                 {isMuted ? "🔇" : "🔊"}
               </button>
-              <button onClick={() => setShowFilters(!showFilters)} className={styles.btn} style={{  marginLeft: 4, border: "1px solid #ddd" }}>
+              <button onClick={() => setShowFilters(!showFilters)} className={styles.btn} style={{ marginLeft: 4, border: "1px solid #ddd" }}>
                 ⚙
               </button>
               {showFilters && (
@@ -986,53 +993,51 @@ export default function BybitTradesGraph({ spotSymbol, linearSymbol, spotChunk, 
 
   return (
     <div className={`${styles.appCol}  ${styles.appColGraph}`}>
-              <div className={styles.appBody}>
-    <div className={styles.container}>
-      {spotSymbol ? (
-        <ChartWithVolume
-          symbol={spotSymbol}
-          category="spot"
-          candlesInput={spotCandles}
-          tradesChunk={spotTradeChunk}
-          feedStatus={spotStatus}
-          interval={spotIntervalEff}
-          setInterval={setSpotIntervalEff}
-          limit={spotLimitEff}
-          setLimit={setSpotLimitEff}
-          analysisLines={spotLines}
-          tradeMarkers={spotMarkers}
-          rangeMarkers={spotRangeMarkers}
-          // Pass live data for calc logic
-          currentTickerPrice={spotPrice}
-          fundingRate={0}
-        />
-      ) : null}
-      {linearSymbol ? (
-        <ChartWithVolume
-          symbol={linearSymbol}
-          category="linear"
-          candlesInput={linearCandles}
-          tradesChunk={linearTradeChunk}
-          feedStatus={linearStatus}
-          interval={linearIntervalEff}
-          setInterval={setLinearIntervalEff}
-          limit={linearLimitEff}
-          setLimit={setLinearLimitEff}
-          analysisLines={linearLines}
-          tradeMarkers={linearMarkers}
-          rangeMarkers={linearRangeMarkers}
-          // Pass live data for calc logic
-          currentTickerPrice={linearPrice}
-          fundingRate={funding}
-        />
-      ) : (
-        <div className={styles.emptyState}>LINEAR Not Available</div>
-      )}
-      {!hasData && <div className={styles.loadingState}>Waiting for data...</div>}
+      <div className={styles.appBody}>
+        <div className={styles.container}>
+          {spotSymbol ? (
+            <ChartWithVolume
+              symbol={spotSymbol}
+              category="spot"
+              candlesInput={spotCandles}
+              tradesChunk={spotTradeChunk}
+              feedStatus={spotStatus}
+              interval={spotIntervalEff}
+              setInterval={setSpotIntervalEff}
+              limit={spotLimitEff}
+              setLimit={setSpotLimitEff}
+              analysisLines={spotLines}
+              tradeMarkers={spotMarkers}
+              rangeMarkers={spotRangeMarkers}
+              // Pass live data for calc logic
+              currentTickerPrice={spotPrice}
+              fundingRate={0}
+            />
+          ) : null}
+          {linearSymbol ? (
+            <ChartWithVolume
+              symbol={linearSymbol}
+              category="linear"
+              candlesInput={linearCandles}
+              tradesChunk={linearTradeChunk}
+              feedStatus={linearStatus}
+              interval={linearIntervalEff}
+              setInterval={setLinearIntervalEff}
+              limit={linearLimitEff}
+              setLimit={setLinearLimitEff}
+              analysisLines={linearLines}
+              tradeMarkers={linearMarkers}
+              rangeMarkers={linearRangeMarkers}
+              // Pass live data for calc logic
+              currentTickerPrice={linearPrice}
+              fundingRate={funding}
+            />
+          ) : (
+            <div className={styles.emptyState}>LINEAR Not Available</div>
+          )}
+          {!hasData && <div className={styles.loadingState}>Waiting for data...</div>}
         </div>
       </div>
-      </div>
+    </div>
   );
 }
-
-

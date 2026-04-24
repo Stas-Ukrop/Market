@@ -3,8 +3,9 @@ import styles from "./AppBar.module.css";
 import { takeFullSnapshot } from "../snapshot/SnapshotEngine";
 import { appCore } from "../../main";
 
-export default function AppBar() {
+export default function AppBar({ onToggleOrderbook, onToggleTrades }) {
   const snap = appCore.kernel?.getSnapshot?.() || null;
+
   return (
     <header className={styles.header}>
       <nav>
@@ -18,8 +19,16 @@ export default function AppBar() {
               {snap?.inflight !== undefined ? ` // inflight=${snap.inflight}` : ""}
             </span>
           </li>
+         
         </ul>
-
+<ul className={styles.listSnapshot}>
+          <li>
+            <button onClick={() => onToggleOrderbook((v) => !v)}>Toggle Orderbook</button>
+          </li>
+          <li>
+            <button onClick={() => onToggleTrades((v) => !v)}>Toggle Trades</button>
+          </li>
+        </ul>
         <ul className={styles.listSnapshot}>
           <li>
             <button className={styles.snapshot} onClick={() => takeFullSnapshot(appCore.activeCoin || "BybitMarket")}>

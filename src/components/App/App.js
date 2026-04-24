@@ -17,6 +17,10 @@ export default function App() {
 
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState("BTC");
+  
+  //render blocks
+  const [showOrderbook, setShowOrderbook] = useState(true);
+  const [showTrades, setShowTrades] = useState(true);
 
   // === Settings for spot/linear graph ===
   const [spotGrafInterval, setSpotGrafInterval] = useState("5m");
@@ -125,74 +129,70 @@ export default function App() {
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <AppBar />
+      <AppBar onToggleOrderbook={ setShowOrderbook} onToggleTrades={setShowTrades}  />
       <Container>
-        <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
-
-
-              <BybitOrderbooks
-                coin={selectedBaseId}
-                spotView={spotData.view}
-                linearView={linearData.view}
-                rows={appCore.obCtrl.getRows()}
-                onRowsChange={(n) => {
-                  appCore.obCtrl.setRows(n);
-                  appCore.bump();
-                }}
-                onToggleAnalysis={() => {
-                  appCore.obCtrl.toggleAnalysis();
-                  appCore.bump();
-                }}
-                isAnalyzing={appCore.obCtrl.isAnalyzing()}
-              />
-            
-            
         
+          <Tickers controller={appCore.tickerCtrl} itemsMap={appCore.itemsMap} q={q} onQ={setQ} selectedId={selectedId} onPick={onPick} tick={tick} />
+      
 
-       
-            
-              <PublicTrades controller={appCore.spotTradesCtrl} title={`Spot Trades (${spotSymbol})`} tradeChunk={spotTradeChunk} symbol={spotSymbol} interval={spotGrafInterval} onUpdateMarkers={setSpotRangeMarkers} />
-       
-              <PublicTrades controller={appCore.linearTradesCtrl} title={`Linear Trades (${linSymbol})`} tradeChunk={linearTradeChunk} symbol={linSymbol} interval={linearGrafInterval} onUpdateMarkers={setLinearRangeMarkers} />
+        {showOrderbook && (<BybitOrderbooks
+          coin={selectedBaseId}
+          spotView={spotData.view}
+          linearView={linearData.view}
+          rows={appCore.obCtrl.getRows()}
+          onRowsChange={(n) => {
+            appCore.obCtrl.setRows(n);
+            appCore.bump();
+          }}
+          onToggleAnalysis={() => {
+            appCore.obCtrl.toggleAnalysis();
+            appCore.bump();
+          }}
+          isAnalyzing={appCore.obCtrl.isAnalyzing()}
+        />)}
 
+        {showTrades && (<PublicTrades controller={appCore.spotTradesCtrl} title={`Spot Trades (${spotSymbol})`} tradeChunk={spotTradeChunk} symbol={spotSymbol} interval={spotGrafInterval} onUpdateMarkers={setSpotRangeMarkers} />
+        )}
 
+        {showTrades && (
+          <PublicTrades controller={appCore.linearTradesCtrl} title={`Linear Trades (${linSymbol})`} tradeChunk={linearTradeChunk} symbol={linSymbol} interval={linearGrafInterval} onUpdateMarkers={setLinearRangeMarkers} />
+        )}
 
-            <BybitTradesGraph
-              coin={selectedBaseId}
-              spotSymbol={spotSymbol}
-              linearSymbol={linSymbol}
-              spotChunk={spotKlineChunk}
-              linearChunk={linearKlineChunk}
-              spotTradeChunk={spotTradeChunk}
-              linearTradeChunk={linearTradeChunk}
-              // Graph Controls
-              spotInterval={spotGrafInterval}
-              setSpotInterval={setSpotGrafInterval}
-              spotLimit={spotGrafLimit}
-              setSpotLimit={setSpotGrafLimit}
-              linearInterval={linearGrafInterval}
-              setLinearInterval={setLinearGrafInterval}
-              linearLimit={linearGrafLimit}
-              setLinearLimit={setLinearGrafLimit}
-              // Legacy fallbacks
-              grafIntervalUI={grafIntervalUI}
-              setGrafIntervalUI={setLinearGrafInterval}
-              grafBarsLimit={linearGrafLimit}
-              setGrafBarsLimit={setLinearGrafLimit}
-              // Overlays
-              spotLines={spotData.lines}
-              linearLines={linearData.lines}
-              spotMarkers={spotMarkers}
-              linearMarkers={linearMarkers}
-              spotRangeMarkers={spotRangeMarkers}
-              linearRangeMarkers={linearRangeMarkers}
-              // === NEW: Calculator Data passed to Graph ===
-              spotPrice={spotPriceVal}
-              linearPrice={linearPriceVal}
-              funding={currentFundingForCalc}
-            />
-          
         
+          <BybitTradesGraph
+            coin={selectedBaseId}
+            spotSymbol={spotSymbol}
+            linearSymbol={linSymbol}
+            spotChunk={spotKlineChunk}
+            linearChunk={linearKlineChunk}
+            spotTradeChunk={spotTradeChunk}
+            linearTradeChunk={linearTradeChunk}
+            // Graph Controls
+            spotInterval={spotGrafInterval}
+            setSpotInterval={setSpotGrafInterval}
+            spotLimit={spotGrafLimit}
+            setSpotLimit={setSpotGrafLimit}
+            linearInterval={linearGrafInterval}
+            setLinearInterval={setLinearGrafInterval}
+            linearLimit={linearGrafLimit}
+            setLinearLimit={setLinearGrafLimit}
+            // Legacy fallbacks
+            grafIntervalUI={grafIntervalUI}
+            setGrafIntervalUI={setLinearGrafInterval}
+            grafBarsLimit={linearGrafLimit}
+            setGrafBarsLimit={setLinearGrafLimit}
+            // Overlays
+            spotLines={spotData.lines}
+            linearLines={linearData.lines}
+            spotMarkers={spotMarkers}
+            linearMarkers={linearMarkers}
+            spotRangeMarkers={spotRangeMarkers}
+            linearRangeMarkers={linearRangeMarkers}
+            // === NEW: Calculator Data passed to Graph ===
+            spotPrice={spotPriceVal}
+            linearPrice={linearPriceVal}
+            funding={currentFundingForCalc}
+          />
       </Container>
     </div>
   );

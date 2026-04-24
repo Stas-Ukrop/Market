@@ -38,7 +38,6 @@ const OrderbookPanel = memo(({ title, view }) => {
   const domLabel = br >= 0.55 ? "Buyers" : br <= 0.45 ? "Sellers" : "Neutral";
 
   return (
-    
     <div className={styles["ob-panel"]}>
       <div className={styles["ob-head"]}>
         <div className={styles["ob-head-left"]}>
@@ -101,52 +100,52 @@ const OrderbookPanel = memo(({ title, view }) => {
 
 export default function BybitOrderbooks({ coin, spotView, linearView, rows, onRowsChange, onToggleAnalysis, isAnalyzing }) {
   return (
-            <div className={`${styles.appCol} ${styles.appColOrderbook}`}>
+    <div className={`${styles.appCol} ${styles.appColOrderbook}`}>
       <div className={styles.appObWrap}>
-                <div className={styles.appObBody}>
-    <div className={styles["ob-root"]}>
-      <div className={styles["ob-caption"]}>
-        <b>Orderbook</b>
-        <span className={styles["ob-muted"]}>{coin || ""}</span>
+        <div className={styles.appObBody}>
+          <div className={styles["ob-root"]}>
+            <div className={styles["ob-caption"]}>
+              <b>Orderbook</b>
+              <span className={styles["ob-muted"]}>{coin || ""}</span>
 
-        <button
-          className={styles["ob-btn"]}
-          onClick={onToggleAnalysis}
-          title={isAnalyzing ? "Stop searching" : "Find Walls and Spoof Levels"}
-          style={{
-            marginLeft: 8,
-            cursor: "pointer",
-            padding: "2px 8px",
-            fontSize: "11px",
-            background: isAnalyzing ? "#ef5350" : "#2196f3",
-            color: "white",
-            border: "none",
-            borderRadius: "3px",
-            fontWeight: isAnalyzing ? "bold" : "normal",
-          }}
-        >
-          {isAnalyzing ? "Stop Search" : "Search Walls"}
-        </button>
+              <button
+                className={styles["ob-btn"]}
+                onClick={onToggleAnalysis}
+                title={isAnalyzing ? "Stop searching" : "Find Walls and Spoof Levels"}
+                style={{
+                  marginLeft: 8,
+                  cursor: "pointer",
+                  padding: "2px 8px",
+                  fontSize: "11px",
+                  background: isAnalyzing ? "#ef5350" : "#2196f3",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "3px",
+                  fontWeight: isAnalyzing ? "bold" : "normal",
+                }}
+              >
+                {isAnalyzing ? "Stop Search" : "Search Walls"}
+              </button>
 
-        <div className={styles["ob-caption-controls"]}>
-          <span className={styles["ob-muted"]}>Rows:</span>
-          <select className={styles["ob-select"]} value={rows} onChange={(e) => onRowsChange(Number(e.target.value))}>
-            {[20, 35, 50, 100, 200].map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+              <div className={styles["ob-caption-controls"]}>
+                <span className={styles["ob-muted"]}>Rows:</span>
+                <select className={styles["ob-select"]} value={rows} onChange={(e) => onRowsChange(Number(e.target.value))}>
+                  {[20, 35, 50, 100, 200].map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-      <div className={styles["ob-grid"]}>
-        <OrderbookPanel title="SPOT" view={spotView} />
-        <OrderbookPanel title="LINEAR" view={linearView} />
-      </div>
+            <div className={styles["ob-grid"]}>
+              <OrderbookPanel title="SPOT" view={spotView} />
+              <OrderbookPanel title="LINEAR" view={linearView} />
+            </div>
           </div>
         </div>
       </div>
-      </div>
+    </div>
   );
 }
