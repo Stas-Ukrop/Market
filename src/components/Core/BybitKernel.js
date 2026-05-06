@@ -1,425 +1,619 @@
 // /components/Core/BybitKernel.js
-const BYBIT_CHUNK_SIZE = 10;
-
-// ─────────────────────────────────────────────
-// helpers (взято из utils/normalizeBaseName.js, без импорта)
-// ─────────────────────────────────────────────
-const RAW_QUOTE_ASSETS = ["USDT", "USDC", "BUSD", "TUSD", "FDUSD", "DAI", "PYUSD", "USDD", "USTC", "USDE", "MNT", "BTC", "ETH", "BNB", "SOL", "XRP", "TRX", "DOGE", "TON", "LTC", "ADA", "MATIC", "USD1", "USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD", "NZD", "NOK", "SEK", "DKK", "CZK", "PLN", "HUF", "RON", "HRK", "ISK", "RUB", "UAH", "KZT", "BYN", "GEL", "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "CNY", "CNH", "HKD", "SGD", "KRW", "TWD", "MYR", "THB", "IDR", "INR", "PHP", "VND", "SAR", "AED", "QAR", "KWD", "BHD", "ILS", "TRY", "ZAR", "EGP", "NGN", "KES", "GHS"];
-
-export const QUOTE_ASSETS = RAW_QUOTE_ASSETS.slice().sort((a, b) => b.length - a.length);
-
-const STRICT_DOUBLE_QUOTE = new Set(["USDT", "USDC", "BUSD", "TUSD", "FDUSD", "DAI", "PYUSD", "USDD", "USTC", "USDE", "MNT", "USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD", "NZD"]);
-
-const NUMERIC_MULTIPLIERS = ["1000000000", "100000000", "10000000", "1000000", "100000", "10000", "1000"];
-
-const FILTER_LOG_LIMIT = 3500;
-export const filteredSymbolsLog = [];
-
-const logFilteredSymbol = (raw, reason, extra = null) => {
-  try {
-    if (filteredSymbolsLog.length >= FILTER_LOG_LIMIT) filteredSymbolsLog.shift();
-    filteredSymbolsLog.push({ raw, reason, extra, ts: null });
-  } catch {
-    console.log("123");
-  }
-};
-
-export function normalizeBaseName(symbol = "") {
-  if (!symbol) return "";
-  const raw = String(symbol).toUpperCase().trim();
-
-  if (raw.includes("PERP")) {
-    logFilteredSymbol(raw, "perp_contract");
-    return "";
-  }
-  if (/\d$/.test(raw)) {
-    logFilteredSymbol(raw, "numeric_suffix");
-    return "";
-  }
-
-  let s = raw.replace(/[/:._-]/g, "");
-
-  let removedQuote = null;
-  for (const quote of QUOTE_ASSETS) {
-    if (s.endsWith(quote)) {
-      s = s.slice(0, s.length - quote.length);
-      removedQuote = quote;
-      break;
-    }
-  }
-  if (!removedQuote) {
-    logFilteredSymbol(raw, "unknown_quote_suffix");
-    return "";
-  }
-
-  if (STRICT_DOUBLE_QUOTE.has(removedQuote) && s.length > removedQuote.length && s.endsWith(removedQuote)) {
-    logFilteredSymbol(raw, "double_quote_suffix", { removedQuote, remainsEndsWith: removedQuote, remains: s });
-    return "";
-  }
-
-  for (const mul of NUMERIC_MULTIPLIERS)
-    if (s.startsWith(mul) && s.length > mul.length + 1) {
-      s = s.slice(mul.length);
-      break;
-    }
-  for (const mul of NUMERIC_MULTIPLIERS)
-    if (s.endsWith(mul) && s.length > mul.length + 1) {
-      s = s.slice(0, s.length - mul.length);
-      break;
-    }
-
-  if (s === "1INCH") s = "INCH";
-  else if (s === "BABY1") s = "BABY";
-  else if (s === "AAVEGOTCHI") s = "GHST";
-
-  s = s.replace(/[^A-Z0-9]/g, "");
-  if (s.length < 1) {
-    logFilteredSymbol(raw, "too_short_after_normalize");
-    return "";
-  }
-
-  return s;
-}
-
-export const getFilteredSymbolsSnapshot = () => filteredSymbolsLog.slice();
-
-const upper = (v) =>
-  String(v ?? "")
-    .trim()
-    .toUpperCase();
-const lower = (v) =>
-  String(v ?? "")
-    .trim()
-    .toLowerCase();
-const tsToIso = (ts) => (ts != null ? new Date(Number(ts)).toISOString() : null);
-
-const uniqSorted = (arr) => {
-  const seen = new Set();
-  const out = [];
-  for (const x of Array.isArray(arr) ? arr : []) {
-    const s = String(x ?? "").trim();
-    if (!s || seen.has(s)) continue;
-    seen.add(s);
-    out.push(s);
-  }
-  out.sort();
-  return out;
-};
-
-const splitBaseQuoteFromSymbol = (symbol) => {
-  const s = upper(symbol);
-  if (!s) return { base: "", quote: "" };
-  for (const q of QUOTE_ASSETS) if (s.endsWith(q)) return { base: s.slice(0, s.length - q.length), quote: q };
-  return { base: "", quote: "" };
-};
-
-const parseRouteId = (id) => {
-  const p = String(id ?? "")
-    .trim()
-    .split(":");
-  if (p.length < 4) return { exchange: "", marketType: "", symbol: "", quote: "" };
-  return { exchange: lower(p[0]), marketType: lower(p[1]), symbol: upper(p[2]), quote: upper(p[3]) };
-};
-
-const pickBestId = (routes, preferredSymbol) => {
-  if (!routes?.length) return null;
-  return (
-    routes
-      .map((r) => {
-        const id = String(r?.id ?? "").trim();
-        const sym = parseRouteId(id).symbol;
-        let score = 100;
-        if (preferredSymbol && sym === preferredSymbol) score = 0;
-        else if (sym && !/^\d/.test(sym)) score = 10;
-        else score = 20;
-        return { id: id || null, score, len: sym.length, sym };
-      })
-      .sort((a, b) => a.score - b.score || a.len - b.len || a.sym.localeCompare(b.sym))[0]?.id || null
-  );
-};
-
 // ─────────────────────────────────────────────
 // ItemsSchema
 // ─────────────────────────────────────────────
+
 export class ItemsSchema {
-  constructor() {
-    this.spot = {
-      url: "https://api.bybit.com/v5/market/instruments-info?category=spot",
-      ws: "wss://stream.bybit.com/v5/public/spot",
-      adapter: {
-        tickers: { template: "tickers.{symbol}", symbolCase: "UPPER" },
-        orderbook: {
-          template: "orderbook.{depth}.{symbol}",
-          symbolCase: "UPPER",
-          allowedDepths: [1, 50],
-          defaults: { depth: 50 },
-        },
-        publicTrade: { template: "publicTrade.{symbol}", symbolCase: "UPPER" },
-        kline: {
-          mode: "topic",
-          template: "kline.{interval}.{symbol}",
-          symbolCase: "UPPER",
-          defaults: { uiInterval: "5m", barsLimit: 200 },
-          historyPolicy: { minBars: 200 },
-          intervalsMap: {
-            "1m": "1",
-            "5m": "5",
-            "15m": "15",
-            "30m": "30",
-            "1h": "60",
-            "4h": "240",
-            "12h": "720",
-            "1d": "D",
-            "1M": "M",
-          },
-        },
-      },
-    };
-
-    this.linear = {
-      url: "https://api.bybit.com/v5/market/instruments-info?category=linear",
-      ws: "wss://stream.bybit.com/v5/public/linear",
-      adapter: {
-        tickers: { template: "tickers.{symbol}", symbolCase: "UPPER" },
-        orderbook: {
-          template: "orderbook.{depth}.{symbol}",
-          symbolCase: "UPPER",
-          allowedDepths: [1, 50, 200, 500],
-          defaults: { depth: 50 },
-        },
-        publicTrade: { mode: "topic", template: "publicTrade.{symbol}", symbolCase: "UPPER" },
-        kline: {
-          template: "kline.{interval}.{symbol}",
-          symbolCase: "UPPER",
-          defaults: { uiInterval: "5m", barsLimit: 200 },
-          historyPolicy: { minBars: 200 },
-          intervalsMap: {
-            "1m": "1",
-            "5m": "5",
-            "15m": "15",
-            "30m": "30",
-            "1h": "60",
-            "4h": "240",
-            "12h": "720",
-            "1d": "D",
-            "1M": "M",
-          },
-        },
-      },
-    };
-
+  constructor(spot, linear, chunkSize, filterLogLimit, numericMultipliers, strictDoubleQuote, quoteAssets, FEED_TTL_MS ) {   
+    this.chunkSize = chunkSize;
+  this.filterLogLimit = filterLogLimit;
+  this.numericMultipliers = numericMultipliers;
+  this.strictDoubleQuote = strictDoubleQuote;
+    this.quoteAssets = quoteAssets;
+    this.FEED_TTL_MS = FEED_TTL_MS;
+    
+    this.spot = spot;    
+    this.linear = linear;
+    
+    this.filteredSymbolsLog = [];
     this.items = [];
   }
 
-  applyChunkViews(baseMap, now) {
-    const spotRoutes = [];
-    const linearRoutes = [];
+hydrateItems({ exchange = "bybit", marketsJson = {}, now = Date.now(), parseInstruments = this.parseInstruments } = {}) {
+  this.filteredSymbolsLog.length = 0;
 
-    // 1. Separation
-    for (const item of baseMap.values()) {
-      for (const r of Object.values(item.routesById || {})) {
-        const mt = parseRouteId(r?.id).marketType;
-        if (mt === "spot") spotRoutes.push(r);
-        else if (mt === "linear") linearRoutes.push(r);
-      }
+  const baseMap = new Map();
+
+  for (const [marketType, json] of Object.entries(marketsJson)) {
+    for (const instrument of parseInstruments.call(this, json, marketType)) {
+      this.upsertInstrumentRoute(baseMap, {
+        exchange,
+        marketType,
+        instrument,
+      });
     }
-
-    spotRoutes.sort((a, b) => String(a?.id).localeCompare(String(b?.id)));
-    linearRoutes.sort((a, b) => String(a?.id).localeCompare(String(b?.id)));
-
-    const ts = Number.isFinite(now) ? Number(now) : null;
-    const iso = tsToIso(ts);
-
-    // 2. Chunking
-    const applyToGroup = (routes, marketType, chunkSize) => {
-      const mt = lower(marketType);
-
-      // 1) TICKERS: чанки по N (10)
-      {
-        const feedKey = "tickers";
-        for (let off = 0, idx = 0; off < routes.length; off += chunkSize, idx++) {
-          const end = Math.min(off + chunkSize, routes.length);
-          const slice = routes.slice(off, end);
-
-          const symbols = slice.map((r) => parseRouteId(r.id).symbol);
-          const routeIds = slice.map((r) => r.id);
-
-          const chunkId = `bybit:${mt}:${feedKey}:full:${idx}`;
-
-          for (const r of slice) {
-            const ch = r.chunks?.[feedKey];
-            if (!ch) continue;
-            ch.id = chunkId;
-            ch.symbols = symbols;
-            ch.routeIds = routeIds;
-            ch.lastUpdateTs = ts;
-            ch.lastUpdateIso = iso;
-          }
-        }
-      }
-
-      // 2) Остальные фиды: ИНДИВИДУАЛЬНО (1 символ = 1 чанк)
-      for (const r of routes) {
-        const { symbol, quote } = parseRouteId(r.id);
-        if (!symbol || !quote) continue;
-
-        for (const feedKey of ["orderbook", "kline", "publicTrade"]) {
-          const ch = r.chunks?.[feedKey];
-          if (!ch) continue;
-
-          ch.id = `bybit:${mt}:${feedKey}:${symbol}:${quote}`;
-          ch.symbols = [symbol];
-          ch.routeIds = [r.id];
-          ch.lastUpdateTs = ts;
-          ch.lastUpdateIso = iso;
-        }
-      }
-    };
-    applyToGroup(spotRoutes, "spot", BYBIT_CHUNK_SIZE);
-    applyToGroup(linearRoutes, "linear", BYBIT_CHUNK_SIZE);
-
-    // Log stats for debugging
-    console.log(`[BybitKernel] Applied chunks. Spot Routes: ${spotRoutes.length}, Linear Routes: ${linearRoutes.length}`);
   }
 
-  hydrateBybitItems({ spotJson, linearJson, now } = {}) {
-    filteredSymbolsLog.length = 0;
+  this.linkOppositeRoutes(baseMap);
 
-    const parseBybitInstruments = (json) => {
-      const list = json?.result?.list;
-      if (!Array.isArray(list)) return [];
-      return list.map((x) => ({ symbol: x?.symbol })).filter((x) => x.symbol);
-    };
+  return this.commitHydratedItems(baseMap, now);
+  }
+  
+parseInstruments(json, marketType) {
+  const instrumentSchema = this.getInstrumentSchema(marketType);
 
-    const mkRouteId = ({ marketType, symbol, quote }) => `bybit:${lower(marketType)}:${upper(symbol)}:${upper(quote)}`;
+  return this.pickInstrumentList(json, instrumentSchema.listPath)
+    .map((item) => this.normalizeInstrumentRecord(item, instrumentSchema))
+    .filter((instrument) => instrument.symbol && this.isActiveInstrument(instrument, instrumentSchema));
+}
 
-    // ─────────────────────────────────────────────────────────────
-    // [CHANGE] Обновленная функция mkChunk
-    // Добавляем history: [] для orderbook и publicTrade
-    // ─────────────────────────────────────────────────────────────
-    const mkChunk = ({ feedKey }) => {
-      const fk = String(feedKey);
-      const ttlMs = fk === "tickers" ? 8000 : fk === "orderbook" ? 5000 : 4000;
+getMarketSchema(marketType) {
+  return this[this.lower(marketType)] || null;
+}
 
-      const chunk = {
-        id: null,
-        symbols: [],
-        routeIds: [],
-        lastUpdateTs: null,
-        lastUpdateIso: null,
-        ttlMs,
-        data: null,
-      };
+getInstrumentSchema(marketType) {
+  return this.getMarketSchema(marketType)?.instrument || {};
+}
 
-      if (fk === "kline" || fk === "orderbook" || fk === "publicTrade") {
-        chunk.history = [];
-      } else if (fk === "tickers") {
-        // Создаем контейнер для исторических данных виджетов из REST API
-        chunk.stats = {};
-      }
+pickInstrumentList(json, listPath = []) {
+  if (Array.isArray(listPath) && listPath.length) {
+    let node = json;
 
-      return chunk;
-    };
-
-    const baseMap = new Map();
-
-    const upsert = (marketType, e) => {
-      const symbol = upper(e?.symbol);
-      if (!symbol) {
-        logFilteredSymbol(String(e?.symbol ?? ""), "empty_symbol");
-        return;
-      }
-
-      if (/-\d{2}[A-Z]{3}\d{2,4}$/.test(symbol)) {
-        logFilteredSymbol(symbol, "dated_contract");
-        return;
-      }
-      if (symbol.endsWith("PERP")) {
-        logFilteredSymbol(symbol, "perp_contract");
-        return;
-      }
-
-      const { quote } = splitBaseQuoteFromSymbol(symbol);
-      if (!quote) {
-        logFilteredSymbol(symbol, "unknown_quote_suffix");
-        return;
-      }
-
-      const baseId = upper(normalizeBaseName(symbol));
-      if (!baseId) return;
-
-      const routeId = mkRouteId({ marketType, symbol, quote });
-
-      const item = baseMap.get(baseId) || { baseId, routesById: {} };
-      const prev = item.routesById[routeId];
-
-      const route = prev || {
-        id: routeId,
-        pinned: false,
-        linkedOppositeRouteIds: [],
-        chunks: {},
-      };
-
-      route.id = routeId;
-      route.linkedOppositeRouteIds = uniqSorted(route.linkedOppositeRouteIds);
-
-      // Ensure chunks object structure
-      route.chunks = route.chunks && typeof route.chunks === "object" ? route.chunks : {};
-
-      // Upsert chunks (preserve existing data if any, but ensure keys exist)
-      for (const k of ["tickers", "orderbook", "kline", "publicTrade"]) {
-        if (!route.chunks[k]) route.chunks[k] = mkChunk({ feedKey: k });
-      }
-
-      item.routesById[routeId] = route;
-      baseMap.set(baseId, item);
-    };
-
-    for (const e of parseBybitInstruments(spotJson)) upsert("spot", e);
-    for (const e of parseBybitInstruments(linearJson)) upsert("linear", e);
-
-    // Linking Spot <-> Linear
-    for (const item of baseMap.values()) {
-      const all = Object.values(item.routesById || {});
-      const byQuote = new Map();
-
-      for (const r of all) {
-        const { marketType, quote } = parseRouteId(r?.id);
-        if (!quote) continue;
-
-        const b = byQuote.get(quote) || { spot: [], linear: [] };
-        if (marketType === "spot") b.spot.push(r);
-        if (marketType === "linear") b.linear.push(r);
-        byQuote.set(quote, b);
-      }
-
-      for (const [quote, bucket] of byQuote.entries()) {
-        const preferred = `${upper(item.baseId)}${upper(quote)}`;
-        const spotId = pickBestId(bucket.spot, preferred);
-        const linId = pickBestId(bucket.linear, preferred);
-        if (!spotId || !linId) continue;
-
-        const spot = item.routesById[spotId];
-        const lin = item.routesById[linId];
-        if (!spot || !lin) continue;
-
-        spot.linkedOppositeRouteIds = uniqSorted([...(spot.linkedOppositeRouteIds || []), lin.id]);
-        lin.linkedOppositeRouteIds = uniqSorted([...(lin.linkedOppositeRouteIds || []), spot.id]);
-      }
+    for (const key of listPath) {
+      node = node?.[key];
     }
 
+    if (Array.isArray(node)) return node;
+  }
+
+  if (Array.isArray(json?.result?.list)) return json.result.list;
+  if (Array.isArray(json?.symbols)) return json.symbols;
+  if (Array.isArray(json?.data)) return json.data;
+
+  return [];
+}
+
+normalizeInstrumentRecord(item, instrumentSchema = {}) {
+  return {
+    symbol: item?.[instrumentSchema.symbolField] ?? item?.symbol ?? item?.instId ?? "",
+    base: item?.[instrumentSchema.baseField] ?? item?.baseAsset ?? item?.baseCcy ?? item?.ctValCcy ?? "",
+    quote: item?.[instrumentSchema.quoteField] ?? item?.quoteAsset ?? item?.quoteCcy ?? item?.settleCcy ?? "",
+    status: item?.[instrumentSchema.statusField] ?? item?.status ?? item?.state ?? "",
+    raw: item,
+  };
+}
+
+isActiveInstrument(instrument, instrumentSchema = {}) {
+  const status = this.upper(instrument?.status);
+  const activeStatuses = instrumentSchema.activeStatuses || [];
+
+  if (!status || !activeStatuses.length) return true;
+
+  return activeStatuses.map((item) => this.upper(item)).includes(status);
+}
+
+  upsertInstrumentRoute(baseMap, { exchange, marketType, instrument }) {
+    const symbol = this.upper(instrument?.symbol);
+
+    if (!symbol) {
+      this.logFilteredSymbol(String(instrument?.symbol ?? ""), "empty_symbol");
+      return;
+    }
+
+    if (this.isRejectedSymbol(symbol)) return;
+
+    const quote = this.resolveQuote(instrument, symbol);
+
+if (!quote) {
+  this.logFilteredSymbol(symbol, "unknown_quote_suffix");
+  return;
+}
+
+const baseId = this.resolveBaseId(instrument, symbol);
+
+if (!baseId) return;
+
+    const routeId = this.buildRouteId({
+      exchange,
+      marketType,
+      symbol,
+      quote,
+    });
+
+    const item = baseMap.get(baseId) || {
+      baseId,
+      routesById: {},
+    };
+
+    const route = item.routesById[routeId] || this.createRoute(routeId);
+
+    route.id = routeId;
+    route.linkedOppositeRouteIds = this.uniqSorted(route.linkedOppositeRouteIds);
+    route.chunks = route.chunks && typeof route.chunks === "object" ? route.chunks : {};
+
+    this.ensureRouteChunks(route, ["tickers", "orderbook", "kline", "publicTrade"]);
+
+    item.routesById[routeId] = route;
+    baseMap.set(baseId, item);
+  }
+resolveQuote(instrument, symbol) {
+  const quote = this.upper(instrument?.quote);
+
+  if (quote) return quote;
+
+  return this.splitBaseQuoteFromSymbol(symbol).quote;
+}
+
+resolveBaseId(instrument, symbol) {
+  const base = this.upper(instrument?.base);
+
+  if (base) return this.cleanBaseId(base);
+
+  return this.upper(this.normalizeBaseName(symbol));
+}
+
+cleanBaseId(base) {
+  let value = this.upper(base).replace(/[^A-Z0-9]/g, "");
+
+  for (const multiplier of this.numericMultipliers || []) {
+    if (value.startsWith(multiplier) && value.length > multiplier.length + 1) {
+      value = value.slice(multiplier.length);
+      break;
+    }
+  }
+
+  for (const multiplier of this.numericMultipliers || []) {
+    if (value.endsWith(multiplier) && value.length > multiplier.length + 1) {
+      value = value.slice(0, value.length - multiplier.length);
+      break;
+    }
+  }
+
+  if (value === "1INCH") value = "INCH";
+  else if (value === "BABY1") value = "BABY";
+  else if (value === "AAVEGOTCHI") value = "GHST";
+
+  return value;
+}
+  isRejectedSymbol(symbol) {
+    if (/-\d{2}[A-Z]{3}\d{2,4}$/.test(symbol)) {
+      this.logFilteredSymbol(symbol, "dated_contract");
+      return true;
+    }
+
+    if (symbol.endsWith("PERP")) {
+      this.logFilteredSymbol(symbol, "perp_contract");
+      return true;
+    }
+
+    return false;
+  }
+
+  buildRouteId({ exchange, marketType, symbol, quote }) {
+    return `${this.lower(exchange)}:${this.lower(marketType)}:${this.upper(symbol)}:${this.upper(quote)}`;
+  }
+
+  createRoute(routeId) {
+    return {
+      id: routeId,
+      pinned: false,
+      linkedOppositeRouteIds: [],
+      chunks: {},
+    };
+  }
+
+  ensureRouteChunks(route, feedKeys) {
+    for (const feedKey of feedKeys) {
+      if (!route.chunks[feedKey]) {
+        route.chunks[feedKey] = this.createChunk(feedKey);
+      }
+    }
+  }
+
+  createChunk(feedKey) {
+    const fk = String(feedKey);
+    const ttlMs = fk === "tickers" ? this.FEED_TTL_MS.tickers : fk === "orderbook" ? this.FEED_TTL_MS.orderbook : this.FEED_TTL_MS.default;
+
+    const chunk = {
+      id: null,
+      symbols: [],
+      routeIds: [],
+      lastUpdateTs: null,
+      lastUpdateIso: null,
+      ttlMs,
+      data: null,
+    };
+
+    if (fk === "kline" || fk === "orderbook" || fk === "publicTrade") {
+      chunk.history = [];
+    }
+
+    if (fk === "tickers") {
+      chunk.stats = {};
+    }
+
+    return chunk;
+  }
+
+  linkOppositeRoutes(baseMap) {
+    for (const item of baseMap.values()) {
+      const byQuote = this.buildRoutesByQuote(item);
+
+      for (const [quote, bucket] of byQuote.entries()) {
+        this.linkBestSpotLinearPair(item, quote, bucket);
+      }
+    }
+  }
+
+  buildRoutesByQuote(item) {
+    const byQuote = new Map();
+
+    for (const route of Object.values(item.routesById || {})) {
+      const { marketType, quote } = this.parseRouteId(route?.id);
+
+      if (!quote) continue;
+
+      const bucket = byQuote.get(quote) || {
+        spot: [],
+        linear: [],
+      };
+
+      if (marketType === "spot") bucket.spot.push(route);
+      if (marketType === "linear") bucket.linear.push(route);
+
+      byQuote.set(quote, bucket);
+    }
+
+    return byQuote;
+  }
+
+  linkBestSpotLinearPair(item, quote, bucket) {
+    const preferred = `${this.upper(item.baseId)}${this.upper(quote)}`;
+    const spotId = this.pickBestId(bucket.spot, preferred);
+    const linearId = this.pickBestId(bucket.linear, preferred);
+
+    if (!spotId || !linearId) return;
+
+    const spot = item.routesById[spotId];
+    const linear = item.routesById[linearId];
+
+    if (!spot || !linear) return;
+
+    spot.linkedOppositeRouteIds = this.uniqSorted([...(spot.linkedOppositeRouteIds || []), linear.id]);
+
+    linear.linkedOppositeRouteIds = this.uniqSorted([...(linear.linkedOppositeRouteIds || []), spot.id]);
+  }
+
+  commitHydratedItems(baseMap, now) {
     const items = Array.from(baseMap.values()).sort((a, b) => String(a.baseId).localeCompare(String(b.baseId)));
+
     this.items = items;
     this.applyChunkViews(baseMap, now);
 
     const ts = Number.isFinite(now) ? Number(now) : null;
+
     return {
       ok: true,
       ts,
-      iso: tsToIso(ts),
+      iso: this.tsToIso(ts),
       bases: items.length,
-      routes: items.reduce((acc, it) => acc + Object.keys(it.routesById || {}).length, 0),
-      filtered: filteredSymbolsLog.length,
+      routes: items.reduce((acc, item) => acc + Object.keys(item.routesById || {}).length, 0),
+      filtered: this.filteredSymbolsLog.length,
     };
+  }
+
+applyChunkViews(baseMap, now, options = {}) {
+  const routesByMarket = this.getRoutesByMarket(baseMap);
+  const ts = Number.isFinite(now) ? Number(now) : null;
+  const iso = this.tsToIso(ts);
+
+  const chunkSize = options.chunkSize ?? this.chunkSize ?? 10;
+  const markets = options.markets ?? ["spot", "linear"].filter((marketType) => this.getMarketSchema(marketType));
+  const groupedFeedKeys = options.groupedFeedKeys ?? ["tickers"];
+  const singleFeedKeys = options.singleFeedKeys ?? ["orderbook", "kline", "publicTrade"];
+
+  for (const marketType of markets) {
+    const routes = routesByMarket[marketType] || [];
+
+    for (const feedKey of groupedFeedKeys) {
+      this.applyGroupedChunks(routes, marketType, feedKey, chunkSize, ts, iso);
+    }
+
+    this.applySingleSymbolChunks(routes, marketType, singleFeedKeys, ts, iso);
+  }
+
+  console.log(
+    `[ItemsSchema] Applied chunks. Spot Routes: ${routesByMarket.spot?.length ?? 0}, Linear Routes: ${
+      routesByMarket.linear?.length ?? 0
+    }`
+  );
+  }
+  
+  getRoutesByMarket(baseMap) {
+    const routesByMarket = {
+      spot: [],
+      linear: [],
+    };
+
+    for (const item of baseMap.values()) {
+      for (const route of Object.values(item.routesById || {})) {
+        const { marketType } = this.parseRouteId(route?.id);
+
+        if (routesByMarket[marketType]) {
+          routesByMarket[marketType].push(route);
+        }
+      }
+    }
+
+    for (const routes of Object.values(routesByMarket)) {
+      routes.sort((a, b) => String(a?.id).localeCompare(String(b?.id)));
+    }
+
+    return routesByMarket;
+  }
+
+  applyGroupedChunks(routes, marketType, feedKey, chunkSize, ts, iso) {
+    for (let off = 0, idx = 0; off < routes.length; off += chunkSize, idx++) {
+      const slice = routes.slice(off, off + chunkSize);
+
+      if (!slice.length) continue;
+
+      const symbols = slice.map((route) => this.parseRouteId(route.id).symbol);
+      const routeIds = slice.map((route) => route.id);
+      const chunkId = this.buildGroupedChunkId(slice[0]?.id, marketType, feedKey, idx);
+
+      for (const route of slice) {
+        this.assignChunk(route.chunks?.[feedKey], {
+          id: chunkId,
+          symbols,
+          routeIds,
+          ts,
+          iso,
+        });
+      }
+    }
+  }
+
+  applySingleSymbolChunks(routes, marketType, feedKeys, ts, iso) {
+    for (const route of routes) {
+      const { symbol, quote } = this.parseRouteId(route.id);
+
+      if (!symbol || !quote) continue;
+
+      for (const feedKey of feedKeys) {
+        this.assignChunk(route.chunks?.[feedKey], {
+          id: this.buildSymbolChunkId(route.id, marketType, feedKey, symbol, quote),
+          symbols: [symbol],
+          routeIds: [route.id],
+          ts,
+          iso,
+        });
+      }
+    }
+  }
+
+  assignChunk(chunk, { id, symbols, routeIds, ts, iso }) {
+    if (!chunk) return;
+
+    chunk.id = id;
+    chunk.symbols = symbols;
+    chunk.routeIds = routeIds;
+    chunk.lastUpdateTs = ts;
+    chunk.lastUpdateIso = iso;
+  }
+
+  buildGroupedChunkId(routeId, marketType, feedKey, index) {
+    const { exchange } = this.parseRouteId(routeId);
+
+    return `${exchange}:${this.lower(marketType)}:${feedKey}:full:${index}`;
+  }
+
+  buildSymbolChunkId(routeId, marketType, feedKey, symbol, quote) {
+    const { exchange } = this.parseRouteId(routeId);
+
+    return `${exchange}:${this.lower(marketType)}:${feedKey}:${symbol}:${quote}`;
+  }
+
+  pickBestId(routes, preferredSymbol) {
+    if (!routes?.length) return null;
+
+    return (
+      routes
+        .map((route) => {
+          const id = String(route?.id ?? "").trim();
+          const symbol = this.parseRouteId(id).symbol;
+
+          let score = 100;
+
+          if (preferredSymbol && symbol === preferredSymbol) score = 0;
+          else if (symbol && !/^\d/.test(symbol)) score = 10;
+          else score = 20;
+
+          return {
+            id: id || null,
+            score,
+            len: symbol.length,
+            symbol,
+          };
+        })
+        .sort((a, b) => a.score - b.score || a.len - b.len || a.symbol.localeCompare(b.symbol))[0]?.id || null
+    );
+  }
+
+  parseRouteId(id) {
+    const parts = String(id ?? "")
+      .trim()
+      .split(":");
+
+    if (parts.length < 4) {
+      return {
+        exchange: "",
+        marketType: "",
+        symbol: "",
+        quote: "",
+      };
+    }
+
+    return {
+      exchange: this.lower(parts[0]),
+      marketType: this.lower(parts[1]),
+      symbol: this.upper(parts[2]),
+      quote: this.upper(parts[3]),
+    };
+  }
+
+splitBaseQuoteFromSymbol(symbol) {
+  const value = this.upper(symbol);
+
+  if (!value) {
+    return {
+      base: "",
+      quote: "",
+    };
+  }
+
+  for (const quote of this.quoteAssets || []) {
+    if (value.endsWith(quote)) {
+      return {
+        base: value.slice(0, value.length - quote.length),
+        quote,
+      };
+    }
+  }
+
+  return {
+    base: "",
+    quote: "",
+  };
+}
+
+normalizeBaseName(symbol = "") {
+  if (!symbol) return "";
+
+  const raw = this.upper(symbol);
+
+  if (raw.includes("PERP")) {
+    this.logFilteredSymbol(raw, "perp_contract");
+    return "";
+  }
+
+  if (/\d$/.test(raw)) {
+    this.logFilteredSymbol(raw, "numeric_suffix");
+    return "";
+  }
+
+  let value = raw.replace(/[/:._-]/g, "");
+  let removedQuote = null;
+
+  for (const quote of this.quoteAssets || []) {
+    if (value.endsWith(quote)) {
+      value = value.slice(0, value.length - quote.length);
+      removedQuote = quote;
+      break;
+    }
+  }
+
+  if (!removedQuote) {
+    this.logFilteredSymbol(raw, "unknown_quote_suffix");
+    return "";
+  }
+
+  if (
+    this.strictDoubleQuote?.has?.(removedQuote) &&
+    value.length > removedQuote.length &&
+    value.endsWith(removedQuote)
+  ) {
+    this.logFilteredSymbol(raw, "double_quote_suffix", {
+      removedQuote,
+      remainsEndsWith: removedQuote,
+      remains: value,
+    });
+
+    return "";
+  }
+
+  for (const multiplier of this.numericMultipliers || []) {
+    if (value.startsWith(multiplier) && value.length > multiplier.length + 1) {
+      value = value.slice(multiplier.length);
+      break;
+    }
+  }
+
+  for (const multiplier of this.numericMultipliers || []) {
+    if (value.endsWith(multiplier) && value.length > multiplier.length + 1) {
+      value = value.slice(0, value.length - multiplier.length);
+      break;
+    }
+  }
+
+  if (value === "1INCH") value = "INCH";
+  else if (value === "BABY1") value = "BABY";
+  else if (value === "AAVEGOTCHI") value = "GHST";
+
+  value = value.replace(/[^A-Z0-9]/g, "");
+
+  if (value.length < 1) {
+    this.logFilteredSymbol(raw, "too_short_after_normalize");
+    return "";
+  }
+
+  return value;
+}
+
+  uniqSorted(arr) {
+    const seen = new Set();
+    const out = [];
+
+    for (const item of Array.isArray(arr) ? arr : []) {
+      const value = String(item ?? "").trim();
+
+      if (!value || seen.has(value)) continue;
+
+      seen.add(value);
+      out.push(value);
+    }
+
+    out.sort();
+
+    return out;
+  }
+
+  getFilteredSymbolsSnapshot() {
+    return this.filteredSymbolsLog.slice();
+  }
+
+logFilteredSymbol(raw, reason, extra = null) {
+  try {
+    const limit = Number.isFinite(Number(this.filterLogLimit)) ? Number(this.filterLogLimit) : 3500;
+
+    if (this.filteredSymbolsLog.length >= limit) {
+      this.filteredSymbolsLog.shift();
+    }
+
+    this.filteredSymbolsLog.push({
+      raw,
+      reason,
+      extra,
+      ts: null,
+    });
+  } catch {
+    console.log("filtered symbol log error");
+  }
+}
+
+  upper(value) {
+    return String(value ?? "")
+      .trim()
+      .toUpperCase();
+  }
+
+  lower(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase();
+  }
+
+  tsToIso(ts) {
+    return ts != null ? new Date(Number(ts)).toISOString() : null;
   }
 }

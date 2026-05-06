@@ -19,9 +19,8 @@ export default function AppBar({ onToggleOrderbook, onToggleTrades }) {
               {snap?.inflight !== undefined ? ` // inflight=${snap.inflight}` : ""}
             </span>
           </li>
-         
         </ul>
-<ul className={styles.listSnapshot}>
+        <ul className={styles.listSnapshot}>
           <li>
             <button onClick={() => onToggleOrderbook((v) => !v)}>Toggle Orderbook</button>
           </li>

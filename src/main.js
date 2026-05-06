@@ -7,6 +7,19 @@ import { takeFullSnapshot } from "./components/snapshot/SnapshotEngine.js";
 import { OrderbookController } from "./components/OrderBook/OrderbookController.js";
 import { TradesController } from "./components/Trades/TradesController.js";
 import { TickerController } from "./components/Tickers/TickerController.js";
+import config from "./components/sсhema/index.js";
+
+const { bybit,binance,okx} = config.schemas;
+
+const {
+  CHUNK_SIZE,
+  FILTER_LOG_LIMIT,
+  NUMERIC_MULTIPLIERS,
+  STRICT_DOUBLE_QUOTE,
+  QUOTE_ASSETS,
+  FEED_TTL_MS ,
+} = config.parameters.runtime;
+
 
 // Helpers (перенесены из App.js для универсального доступа)
 export const upper = (v) =>
@@ -26,26 +39,33 @@ export const parseRouteId = (id) => {
   return { exchange: lower(p[0]), marketType: lower(p[1]), symbol: upper(p[2]), quote: upper(p[3]) };
 };
 
-export const pickRoute = (item, marketType, quote = "") => {
+export const pickRoute = (item, marketType, quote = "", exchangeId = "bybit") => {
+  const ex = lower(exchangeId);
   const mt = lower(marketType);
   const q = upper(quote);
   const routes = item?.routesById ? Object.values(item.routesById) : [];
-  for (const r of routes) {
-    const meta = parseRouteId(r?.id);
-    if (meta.exchange !== "bybit") continue;
+
+  for (const route of routes) {
+    const meta = parseRouteId(route?.id);
+
+    if (meta.exchange !== ex) continue;
     if (meta.marketType !== mt) continue;
     if (q && meta.quote !== q) continue;
-    return r;
+
+    return route;
   }
-  // Если квота не совпала, пробуем найти любой подходящий тип рынка (fallback)
+
   if (q) {
-    for (const r of routes) {
-      const meta = parseRouteId(r?.id);
-      if (meta.exchange !== "bybit") continue;
+    for (const route of routes) {
+      const meta = parseRouteId(route?.id);
+
+      if (meta.exchange !== ex) continue;
       if (meta.marketType !== mt) continue;
-      return r;
+
+      return route;
     }
   }
+
   return null;
 };
 
@@ -56,7 +76,16 @@ export const pickKlineChunk = (route) => route?.chunks?.kline || route?.chunk?.k
 class CoreApplication {
   constructor() {
     // 1. Core State
-    this.schema = new ItemsSchema();
+    this.schema = new ItemsSchema(
+      bybit.spot,
+      bybit.linear,
+      CHUNK_SIZE,
+      FILTER_LOG_LIMIT,
+      NUMERIC_MULTIPLIERS,
+      STRICT_DOUBLE_QUOTE,
+      QUOTE_ASSETS,
+      FEED_TTL_MS 
+);
     this.kernel = null; // Будет инициализирован в init()
     this.itemsMap = new Map();
     this.routeToBase = new Map();
@@ -124,11 +153,6 @@ class CoreApplication {
     const item = this.itemsMap.get(this.activeCoin);
     if (!item) return;
 
-    // Ищем конкретный роут (например, Spot route для BTC)
-    // Мы не знаем точную котируемую (USDT/USDC), поэтому берем первую попавшуюся
-    // или наиболее приоритетную через pickRoute.
-    // Обычно OrderbookController уже выбрал правильную пару, но здесь мы
-    // работаем от baseId. Попробуем найти USDT пару как дефолт, или первую доступную.
     const route = pickRoute(item, marketType, "USDT") || pickRoute(item, marketType, "");
 
     if (!route) return; // У этой монеты может не быть спота или фьючерса
@@ -195,7 +219,14 @@ class CoreApplication {
     try {
       const [spotJson, linearJson] = await Promise.all([fetch(this.schema.spot.url).then((r) => r.json()), fetch(this.schema.linear.url).then((r) => r.json())]);
 
-      this.schema.hydrateBybitItems({ spotJson, linearJson, now: Date.now() });
+      this.schema.hydrateItems({
+  exchange: "bybit",
+  marketsJson: {
+    spot: spotJson,
+    linear: linearJson,
+  },
+  now: Date.now(),
+});
 
       const items = Array.isArray(this.schema.items) ? this.schema.items : [];
       this.itemsMap = new Map(items.map((it) => [String(it.baseId || ""), it]));
